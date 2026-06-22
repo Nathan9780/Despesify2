@@ -2,7 +2,18 @@ import { useLocation } from 'react-router-dom';
 
 export function Topbar() {
   const location = useLocation();
-  const title = location.pathname.startsWith('/settings') ? 'Configurações' : 'Dashboard';
+  
+  const titleMap = {
+    '/dashboard': 'Dashboard',
+    '/projects': 'Meus Projetos',
+    '/team': 'Equipe',
+    '/materials': 'Materiais',
+    '/investors': 'Investidores',
+    '/messages': 'Mensagens',
+    '/settings': 'Configurações'
+  };
+
+  const title = titleMap[location.pathname] || 'Despesify 2';
 
   return (
     <header className="h-[70px] fixed top-0 right-0 left-[260px] z-10 bg-surface flex justify-between items-center px-lateral_padding w-[calc(100%-260px)] border-b border-outline-variant">

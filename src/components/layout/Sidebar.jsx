@@ -1,10 +1,24 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 export function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const currentUserStr = localStorage.getItem('currentUser');
+  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+
+  const planNames = {
+    citizen: { name: 'Plano Pessoal', icon: 'home', badge: 'bg-primary-container text-on-primary-container' },
+    enterprise: { name: 'Plano Empresarial', icon: 'business', badge: 'bg-secondary-container text-on-secondary-container' },
+    investor: { name: 'Plano Investidor', icon: 'payments', badge: 'bg-tertiary-fixed text-on-tertiary-fixed' },
+  };
+
+  const planInfo = currentUser?.plan 
+    ? planNames[currentUser.plan] 
+    : { name: 'Sem Plano', icon: 'person', badge: 'bg-surface-variant text-on-surface-variant' };
 
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: 'dashboard' },
+    { name: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
     { name: 'Meus Projetos', path: '/projects', icon: 'folder_shared' },
     { name: 'Equipe', path: '/team', icon: 'group' },
     { name: 'Materiais', path: '/materials', icon: 'inventory_2' },
@@ -12,15 +26,38 @@ export function Sidebar() {
     { name: 'Mensagens', path: '/messages', icon: 'chat' },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    navigate('/login');
+  };
+
   return (
     <nav className="w-[260px] h-screen fixed left-0 top-0 bg-secondary shadow-sm flex flex-col py-4 z-20">
-      <div className="px-lateral_padding mb-8 flex items-center gap-3">
-        <div className="w-10 h-10 rounded bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-title text-title">D</div>
-        <div>
-          <h1 className="font-title text-title text-on-secondary text-lg">Despesify 2</h1>
-          <p className="font-label text-label text-on-secondary opacity-70">Financial PM</p>
+      {/* Brand logo & active user profile */}
+      <div className="px-lateral_padding mb-6 flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-title text-title shadow-sm">D</div>
+          <div>
+            <h1 className="font-title text-title text-on-secondary text-lg leading-tight">Despesify 2</h1>
+            <p className="font-label text-[10px] text-on-secondary opacity-70">Unified Management</p>
+          </div>
         </div>
+        
+        {/* User Card */}
+        {currentUser && (
+          <div className="mt-3 p-3 bg-surface-container/10 border border-white/10 rounded-xl flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-on-secondary opacity-80">account_circle</span>
+              <span className="font-label text-xs text-on-secondary font-bold truncate max-w-[160px]">{currentUser.name}</span>
+            </div>
+            <div className={`px-2 py-0.5 rounded text-[9px] font-label font-bold flex items-center gap-1.5 w-fit ${planInfo.badge}`}>
+              <span className="material-symbols-outlined text-[12px]">{planInfo.icon}</span>
+              {planInfo.name}
+            </div>
+          </div>
+        )}
       </div>
+
       <div className="flex-1 flex flex-col gap-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -38,7 +75,9 @@ export function Sidebar() {
           );
         })}
       </div>
-      <div className="mt-auto pt-4 border-t border-outline/20 flex flex-col gap-1">
+
+      {/* Sidebar Footer Actions */}
+      <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-1">
         <Link
           to="/settings"
           className={location.pathname.startsWith('/settings')
@@ -48,6 +87,13 @@ export function Sidebar() {
           <span className="material-symbols-outlined text-[20px]" style={location.pathname.startsWith('/settings') ? { fontVariationSettings: "'FILL' 1" } : {}}>settings</span>
           Configurações
         </Link>
+        <button
+          onClick={handleLogout}
+          className="text-error-container hover:text-white hover:bg-error/20 transition-colors mx-2 px-4 py-2 flex items-center gap-3 rounded-lg font-label text-label text-left w-[calc(100%-16px)] cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[20px]">logout</span>
+          Sair da Conta
+        </button>
       </div>
     </nav>
   );
