@@ -1,61 +1,132 @@
+/* ===== VARIÁVEIS (MANTENHA OU SUBSTITUA PELAS SUAS) ===== */
+:root {
+  --accent: #2980b9; /* Azul primário do seu projeto */
+  --accent-bg: rgba(41, 128, 185, 0.08);
+  --accent-border: rgba(41, 128, 185, 0.3);
+  --border: rgba(116, 119, 124, 0.2);
+  --text-h: #1b4f72;
+  --social-bg: rgba(255, 255, 255, 0.6);
+  --shadow: 0 8px 32px rgba(41, 128, 185, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.3);
+}
+
+/* ===== CONTADOR COM EFEITO DE LUZ ===== */
 .counter {
   font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
+  padding: 8px 18px;
+  border-radius: 50px; /* mais arredondado */
   color: var(--accent);
   background: var(--accent-bg);
   border: 2px solid transparent;
-  transition: border-color 0.3s;
+  transition: all 0.4s ease;
   margin-bottom: 24px;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+  backdrop-filter: blur(4px);
+  box-shadow: 0 0 20px rgba(41, 128, 185, 0.1);
+  position: relative;
+  overflow: hidden;
 }
 
+/* Efeito de luz pulsante no contador */
+.counter::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50px;
+  padding: 2px;
+  background: conic-gradient(
+    from 0deg,
+    var(--accent),
+    transparent,
+    var(--accent),
+    transparent
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.counter:hover::before {
+  opacity: 1;
+}
+
+.counter:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 40px rgba(41, 128, 185, 0.25);
+  transform: scale(1.02);
+}
+
+.counter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* ===== HERO COM EFEITO DE GLOW NOS LOGOS ===== */
 .hero {
   position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
 }
 
+.hero .base,
+.hero .framework,
+.hero .vite {
+  inset-inline: 0;
+  margin: 0 auto;
+}
+
+.hero .base {
+  width: 170px;
+  position: relative;
+  z-index: 0;
+  filter: drop-shadow(0 0 20px rgba(41, 128, 185, 0.15));
+  transition: filter 0.4s;
+}
+
+.hero .base:hover {
+  filter: drop-shadow(0 0 40px rgba(41, 128, 185, 0.3));
+}
+
+.hero .framework,
+.hero .vite {
+  position: absolute;
+  filter: drop-shadow(0 0 12px rgba(41, 128, 185, 0.12));
+  transition: filter 0.4s;
+}
+
+.hero .framework {
+  z-index: 1;
+  top: 34px;
+  height: 28px;
+  transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
+    scale(1.4);
+}
+
+.hero .framework:hover {
+  filter: drop-shadow(0 0 30px rgba(41, 128, 185, 0.3));
+}
+
+.hero .vite {
+  z-index: 0;
+  top: 107px;
+  height: 26px;
+  width: auto;
+  transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
+    scale(0.8);
+  filter: drop-shadow(0 0 8px rgba(52, 152, 219, 0.1));
+}
+
+.hero .vite:hover {
+  filter: drop-shadow(0 0 30px rgba(52, 152, 219, 0.25));
+}
+
+/* ===== CENTER (CONTEÚDO PRINCIPAL) ===== */
 #center {
   display: flex;
   flex-direction: column;
@@ -63,122 +134,235 @@
   place-content: center;
   place-items: center;
   flex-grow: 1;
+  padding: 20px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(41, 128, 185, 0.03) 0%,
+    transparent 70%
+  );
+}
 
-  @media (max-width: 1024px) {
+@media (max-width: 1024px) {
+  #center {
     padding: 32px 20px 24px;
     gap: 18px;
   }
 }
 
+/* ===== NEXT STEPS (CARDS COM VIDRO E LUZ) ===== */
 #next-steps {
   display: flex;
   border-top: 1px solid var(--border);
   text-align: left;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  margin: 0 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--glass-border);
+}
 
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
+#next-steps > div {
+  flex: 1 1 0;
+  padding: 32px;
+  transition:
+    background 0.3s,
+    box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+}
 
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
+/* Efeito de luz que se move no hover de cada card */
+#next-steps > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(41, 128, 185, 0.05),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.6s;
+  pointer-events: none;
+}
 
-  @media (max-width: 1024px) {
+#next-steps > div:hover::after {
+  opacity: 1;
+}
+
+#next-steps > div:hover {
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 30px rgba(41, 128, 185, 0.04);
+}
+
+#next-steps .icon {
+  margin-bottom: 16px;
+  width: 22px;
+  height: 22px;
+  filter: drop-shadow(0 0 6px rgba(41, 128, 185, 0.1));
+  transition: filter 0.3s;
+}
+
+#next-steps > div:hover .icon {
+  filter: drop-shadow(0 0 12px rgba(41, 128, 185, 0.25));
+}
+
+@media (max-width: 1024px) {
+  #next-steps {
     flex-direction: column;
     text-align: center;
+    margin: 0 10px;
+    border-radius: 12px;
+  }
+  #next-steps > div {
+    padding: 24px 20px;
   }
 }
 
+/* ===== DOCS (PRIMEIRO CARD) ===== */
 #docs {
   border-right: 1px solid var(--border);
+}
 
-  @media (max-width: 1024px) {
+@media (max-width: 1024px) {
+  #docs {
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
 }
 
+/* ===== LINKS SOCIAIS (COM GLOW) ===== */
 #next-steps ul {
   list-style: none;
   padding: 0;
   display: flex;
   gap: 8px;
   margin: 32px 0 0;
+}
 
-  .logo {
-    height: 18px;
-  }
+#next-steps ul .logo {
+  height: 18px;
+}
 
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
+#next-steps ul a {
+  color: var(--text-h);
+  font-size: 16px;
+  border-radius: 50px; /* mais moderno */
+  background: var(--social-bg);
+  display: flex;
+  padding: 8px 16px;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
 
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
+#next-steps ul a:hover {
+  box-shadow:
+    var(--shadow),
+    0 0 30px rgba(41, 128, 185, 0.1);
+  border-color: var(--accent-border);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.8);
+}
 
-  @media (max-width: 1024px) {
+#next-steps ul a .button-icon {
+  height: 18px;
+  width: 18px;
+  filter: drop-shadow(0 0 4px rgba(41, 128, 185, 0.1));
+  transition: filter 0.3s;
+}
+
+#next-steps ul a:hover .button-icon {
+  filter: drop-shadow(0 0 8px rgba(41, 128, 185, 0.2));
+}
+
+@media (max-width: 1024px) {
+  #next-steps ul {
     margin-top: 20px;
     flex-wrap: wrap;
     justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
+  }
+  #next-steps ul li {
+    flex: 1 1 calc(50% - 8px);
+  }
+  #next-steps ul a {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
   }
 }
 
+/* ===== SPACER ===== */
 #spacer {
   height: 88px;
   border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
+  position: relative;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(41, 128, 185, 0.02) 0%,
+    transparent 70%
+  );
+}
+
+#spacer::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.1;
+  border-radius: 100%;
+}
+
+@media (max-width: 1024px) {
+  #spacer {
     height: 48px;
   }
 }
 
+/* ===== TICKS (DECORAÇÃO) ===== */
 .ticks {
   position: relative;
   width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin: 20px 0;
+}
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
+.ticks::before,
+.ticks::after {
+  content: "";
+  position: absolute;
+  top: -4.5px;
+  border: 5px solid transparent;
+  filter: drop-shadow(0 0 6px rgba(41, 128, 185, 0.1));
+}
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
+.ticks::before {
+  left: 0;
+  border-left-color: var(--border);
+}
+
+.ticks::after {
+  right: 0;
+  border-right-color: var(--border);
+}
+
+/* ===== EFEITO EXTRA: PULSO NO FUNDO (OPCIONAL) ===== */
+body {
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(41, 128, 185, 0.02) 0%,
+    transparent 60%
+  );
+  min-height: 100vh;
 }
