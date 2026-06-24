@@ -1,9 +1,21 @@
+// -  Imports  - //
+
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+
 
 export function Dashboard() {
   // Dados mockados
-  const user = { name: "Nathan Silva" };
+  let currentUser;
+  const currentUserStr = localStorage.getItem('currentUser');
+  try {
+    currentUser = JSON.parse(currentUserStr);
+  } catch (e) {
+    localStorage.removeItem('currentUser');
+    return <Navigate to="/login" replace />;
+  }
+
+  const user = { name: currentUser?.name || "Usuário" };
 
   const stats = {
     totalBudget: 120000,

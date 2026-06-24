@@ -4,12 +4,21 @@ import { Topbar } from './Topbar';
 
 export function AppLayout() {
   const currentUserStr = localStorage.getItem('currentUser');
-  
+
   if (!currentUserStr) {
     return <Navigate to="/login" replace />;
   }
 
-  const currentUser = JSON.parse(currentUserStr);
+  let currentUser;
+  try {
+    currentUser = JSON.parse(currentUserStr);
+  } catch (e) {
+    console.error('Failed to parse currentUser from localStorage', e);
+    // Remove corrupted data and redirect to login
+    localStorage.removeItem('currentUser');
+    return <Navigate to="/login" replace />;
+  }
+
   if (!currentUser.plan) {
     return <Navigate to="/select-plan" replace />;
   }
