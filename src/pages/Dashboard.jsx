@@ -1,63 +1,70 @@
-// -  Imports  - //
-
+// src/pages/Dashboard.jsx
 import React from "react";
 import { Link, Navigate } from "react-router-dom";
-
+import { useDashboard } from "../hooks/useDashboard";
 
 export function Dashboard() {
-  // Dados mockados
-  let currentUser;
-  const currentUserStr = localStorage.getItem('currentUser');
-  try {
-    currentUser = JSON.parse(currentUserStr);
-  } catch (e) {
-    localStorage.removeItem('currentUser');
+  // Verifica autenticação
+  const currentUserStr = localStorage.getItem("currentUser");
+  if (!currentUserStr) {
     return <Navigate to="/login" replace />;
   }
+  const currentUser = JSON.parse(currentUserStr);
 
-  const user = { name: currentUser?.name || "Usuário" };
+  // Busca dados com React Query
+  const { data: dashboardData, isLoading, error } = useDashboard();
 
+  // Se estiver carregando, mostra um spinner
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Carregando seus dados...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Se houver erro, mostra mensagem
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center text-red-500">
+          <p className="text-xl font-semibold">Erro ao carregar dados</p>
+          <p className="text-sm">{error.message}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Estatísticas calculadas a partir dos dados reais
   const stats = {
-    totalBudget: 120000,
-    totalSpent: 43500,
-    available: 76500,
-    projects: 5,
-    employees: 12,
-    tasksPending: 18,
-    investmentsReceived: 30000,
+    totalBudget: dashboardData?.finances?.totalBudget || 0,
+    totalSpent: dashboardData?.finances?.totalSpent || 0,
+    available: dashboardData?.finances?.available || 0,
+    projects: dashboardData?.projects?.total || 0,
+    employees: dashboardData?.employees?.active || 0,
+    tasksPending: 0, // será implementado depois
+    investmentsReceived: dashboardData?.investments?.totalRaised || 0,
     investmentGoal: 100000,
   };
 
-  const projects = [
-    {
-      id: 1,
-      name: "Reforma da Casa",
-      category: "Construção",
-      budget: 50000,
-      spent: 20000,
-      progress: 60,
-      visibility: "private",
-    },
-    {
-      id: 2,
-      name: "Ampliação da Empresa",
-      category: "Comercial",
-      budget: 200000,
-      spent: 80000,
-      progress: 40,
-      visibility: "public",
-    },
-    {
-      id: 3,
-      name: "Loft Distrito Histórico",
-      category: "Renovação",
-      budget: 120000,
-      spent: 38000,
-      progress: 32,
-      visibility: "public",
-    },
-  ];
+  // Projetos reais (limitados a 3)
+  const projects = dashboardData?.projects?.list || [];
+  const recentProjects = projects.slice(0, 3);
 
+  // Equipe real (limitada a 3)
+  const employees = dashboardData?.employees?.list || [];
+  const recentTeam = employees.slice(0, 3);
+
+  // Dados mockados para tarefas e notificações (serão substituídos)
   const tasks = [
     { id: 1, title: "Comprar cimento", priority: "high", due: "Amanhã" },
     { id: 2, title: "Pagar eletricista", priority: "medium", due: "Hoje" },
@@ -70,12 +77,6 @@ export function Dashboard() {
     { id: 4, title: "Atualizar orçamento", priority: "medium", due: "Amanhã" },
   ];
 
-  const team = [
-    { name: "João Silva", role: "Pedreiro", status: "paid" },
-    { name: "Carlos Souza", role: "Eletricista", status: "pending" },
-    { name: "Maria Oliveira", role: "Arquiteta", status: "paid" },
-  ];
-
   const notifications = [
     { id: 1, text: "Novo investidor interessado", time: "5 min" },
     { id: 2, text: "Pagamento pendente para João Silva", time: "1 hora" },
@@ -83,15 +84,10 @@ export function Dashboard() {
     { id: 4, text: "Tarefa vence amanhã", time: "1 dia" },
   ];
 
-  const publicProjects = [
-    {
-      name: "Construção Residencial",
-      goal: 150000,
-      raised: 50000,
-      progress: 33,
-    },
-    { name: "Parque Urbano", goal: 300000, raised: 120000, progress: 40 },
-  ];
+  // Projetos públicos
+  const publicProjects = projects
+    .filter((p) => p.visibility === "public")
+    .slice(0, 2);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -99,16 +95,18 @@ export function Dashboard() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">
-            Olá, {user.name} 👋
+            Olá, {currentUser.name || "Usuário"} 👋
           </h1>
           <p className="text-sm text-gray-500">
             Resumo dos seus projetos e atividades
           </p>
         </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg">add</span>
-          Novo Projeto
-        </button>
+        <Link to="/projects/new">
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">add</span>
+            Novo Projeto
+          </button>
+        </Link>
       </div>
 
       {/* Cards de resumo */}
@@ -259,9 +257,11 @@ export function Dashboard() {
                 ></div>
               </div>
             </div>
-            <button className="mt-3 w-full text-xs text-green-600 border border-green-300 rounded-lg py-1.5 hover:bg-green-50">
-              Ver detalhes
-            </button>
+            <Link to="/investors">
+              <button className="mt-3 w-full text-xs text-green-600 border border-green-300 rounded-lg py-1.5 hover:bg-green-50">
+                Ver detalhes
+              </button>
+            </Link>
           </div>
 
           <div className="bg-white rounded-xl p-5 shadow">
@@ -315,39 +315,55 @@ export function Dashboard() {
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {projects.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white rounded-xl overflow-hidden shadow hover:shadow-md transition"
-              >
-                <div className="h-20 bg-gradient-to-r from-blue-600 to-blue-800 relative">
-                  <span
-                    className={`absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full ${p.visibility === "public" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
-                  >
-                    {p.visibility === "public" ? "🌎 Público" : "🔒 Privado"}
-                  </span>
-                </div>
-                <div className="p-4">
-                  <h4 className="font-semibold text-gray-800 text-sm">
-                    {p.name}
-                  </h4>
-                  <p className="text-xs text-gray-500">{p.category}</p>
-                  <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>R$ {p.budget.toLocaleString()}</span>
-                    <span>Gasto: R$ {p.spent.toLocaleString()}</span>
+            {recentProjects.length > 0 ? (
+              recentProjects.map((p) => (
+                <div
+                  key={p.id}
+                  className="bg-white rounded-xl overflow-hidden shadow hover:shadow-md transition"
+                >
+                  <div className="h-20 bg-gradient-to-r from-blue-600 to-blue-800 relative">
+                    <span
+                      className={`absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full ${p.visibility === "public" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
+                    >
+                      {p.visibility === "public" ? "🌎 Público" : "🔒 Privado"}
+                    </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                    <div
-                      className="bg-blue-600 h-1.5 rounded-full"
-                      style={{ width: `${p.progress}%` }}
-                    ></div>
+                  <div className="p-4">
+                    <h4 className="font-semibold text-gray-800 text-sm">
+                      {p.name}
+                    </h4>
+                    <p className="text-xs text-gray-500">
+                      {p.category || "Sem categoria"}
+                    </p>
+                    <div className="flex justify-between text-xs text-gray-500 mt-2">
+                      <span>R$ {p.budget?.toLocaleString() || 0}</span>
+                      <span>Gasto: R$ {p.spent?.toLocaleString() || 0}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                      <div
+                        className="bg-blue-600 h-1.5 rounded-full"
+                        style={{ width: `${p.progress || 0}%` }}
+                      ></div>
+                    </div>
+                    <Link to={`/projects/${p.id}`}>
+                      <button className="mt-3 w-full text-xs text-blue-600 border border-blue-300 rounded-lg py-1.5 hover:bg-blue-50">
+                        Acessar
+                      </button>
+                    </Link>
                   </div>
-                  <button className="mt-3 w-full text-xs text-blue-600 border border-blue-300 rounded-lg py-1.5 hover:bg-blue-50">
-                    Acessar
-                  </button>
                 </div>
+              ))
+            ) : (
+              <div className="col-span-2 text-center py-8 text-gray-500">
+                <p>Nenhum projeto cadastrado ainda.</p>
+                <Link
+                  to="/projects/new"
+                  className="text-blue-600 hover:underline"
+                >
+                  Criar seu primeiro projeto
+                </Link>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -401,30 +417,38 @@ export function Dashboard() {
               Últimos Contratados
             </h3>
             <div className="space-y-3">
-              {team.map((m, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 p-2 rounded hover:bg-gray-50"
-                >
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">
-                    {m.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-gray-800">
-                      {m.name}
-                    </p>
-                    <p className="text-[10px] text-gray-500">{m.role}</p>
-                  </div>
-                  <span
-                    className={`text-[9px] px-2 py-0.5 rounded-full ${m.status === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
+              {recentTeam.length > 0 ? (
+                recentTeam.map((m, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-2 rounded hover:bg-gray-50"
                   >
-                    {m.status === "paid" ? "✅ Pago" : "⏳ Pendente"}
-                  </span>
-                </div>
-              ))}
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">
+                      {m.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-800">
+                        {m.name}
+                      </p>
+                      <p className="text-[10px] text-gray-500">
+                        {m.role || "Sem cargo"}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-[9px] px-2 py-0.5 rounded-full ${m.payment_status === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
+                    >
+                      {m.payment_status === "paid" ? "✅ Pago" : "⏳ Pendente"}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500 text-sm py-4">
+                  Nenhum funcionário cadastrado
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -447,32 +471,40 @@ export function Dashboard() {
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {publicProjects.map((p, i) => (
-            <div
-              key={i}
-              className="border border-gray-200 rounded-xl p-4 hover:shadow transition"
-            >
-              <h4 className="font-medium text-gray-800">{p.name}</h4>
-              <p className="text-xs text-gray-500">
-                Meta: R$ {p.goal.toLocaleString()}
-              </p>
-              <div className="mt-2">
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Captado: R$ {p.raised.toLocaleString()}</span>
-                  <span>{p.progress}%</span>
+          {publicProjects.length > 0 ? (
+            publicProjects.map((p, i) => (
+              <div
+                key={i}
+                className="border border-gray-200 rounded-xl p-4 hover:shadow transition"
+              >
+                <h4 className="font-medium text-gray-800">{p.name}</h4>
+                <p className="text-xs text-gray-500">
+                  Meta: R$ {p.budget?.toLocaleString() || 0}
+                </p>
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Captado: R$ {p.spent?.toLocaleString() || 0}</span>
+                    <span>{p.progress || 0}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{ width: `${p.progress || 0}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: `${p.progress}%` }}
-                  ></div>
-                </div>
+                <Link to={`/projects/${p.id}`}>
+                  <button className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg py-1.5">
+                    Ver Projeto
+                  </button>
+                </Link>
               </div>
-              <button className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg py-1.5">
-                Ver Projeto
-              </button>
+            ))
+          ) : (
+            <div className="col-span-2 text-center py-8 text-gray-500">
+              <p>Nenhum projeto público disponível no momento.</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

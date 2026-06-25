@@ -2,21 +2,32 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 
-// Buscar todos os dados de uma vez (ou em paralelo)
 export const useDashboard = () => {
   return useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
       const userId = (await supabase.auth.getUser()).data.user?.id;
 
-      // Executar consultas em paralelo
+      // Se não houver usuário logado, retorna dados vazios
+      if (!userId) {
+        return {
+          projects: { total: 0 },
+          finances: { totalBudget: 0, totalSpent: 0, available: 0 },
+          employees: { active: 0 },
+          materials: { stockValue: 0 },
+          investments: { totalRaised: 0 },
+          messages: { unread: 0 },
+        };
+      }
+
+      // Executar consultas em paralelo com tratamento de erro individual
       const [
-        { count: totalProjects },
-        { data: finances },
-        { count: activeEmployees },
-        { data: materials },
-        { data: investments },
-        { data: unreadMessages },
+        projectsResult,
+        financesResult,
+        employeesResult,
+        materialsResult,
+        investmentsResult,
+        messagesResult,
       ] = await Promise.all([
         supabase
           .from("projects")
@@ -40,26 +51,41 @@ export const useDashboard = () => {
           .eq("is_read", false),
       ]);
 
+      // Extrair dados de forma segura (garantir que sejam arrays)
+      const financesData = financesResult.data ?? []; // ← FIX: se for null, vira array vazio
+      const materialsData = materialsResult.data ?? [];
+      const investmentsData = investmentsResult.data ?? [];
+
       // Calcular financeiro
-      const totalBudget = finances.reduce((sum, p) => sum + p.budget, 0);
-      const totalSpent = finances.reduce((sum, p) => sum + p.spent, 0);
+      const totalBudget = financesData.reduce(
+        (sum, p) => sum + (p.budget || 0),
+        0,
+      );
+      const totalSpent = financesData.reduce(
+        (sum, p) => sum + (p.spent || 0),
+        0,
+      );
       const available = totalBudget - totalSpent;
 
       // Calcular estoque
-      const stockValue = materials.reduce(
-        (sum, m) => sum + m.quantity * m.unit_price,
+      const stockValue = materialsData.reduce(
+        (sum, m) => sum + (m.quantity || 0) * (m.unit_price || 0),
+        0,
+      );
+
+      // Total captado
+      const totalRaised = investmentsData.reduce(
+        (s, i) => s + (i.amount || 0),
         0,
       );
 
       return {
-        projects: { total: totalProjects || 0 },
+        projects: { total: projectsResult.count || 0 },
         finances: { totalBudget, totalSpent, available },
-        employees: { active: activeEmployees || 0 },
+        employees: { active: employeesResult.count || 0 },
         materials: { stockValue },
-        investments: {
-          totalRaised: investments.reduce((s, i) => s + i.amount, 0),
-        },
-        messages: { unread: unreadMessages || 0 },
+        investments: { totalRaised },
+        messages: { unread: messagesResult.count || 0 },
       };
     },
   });

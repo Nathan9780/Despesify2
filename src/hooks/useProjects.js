@@ -8,7 +8,18 @@ export const useProjects = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
+      // Obter usuário atual
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.warn("Usuário não autenticado, retornando lista vazia");
+        return [];
+      }
+
+      const userId = user.id;
       const { data, error } = await supabase
         .from("projects")
         .select("*")
@@ -16,16 +27,22 @@ export const useProjects = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
+    // A query só será executada se houver um token (opcional)
+    // enabled: !!localStorage.getItem('token'), // se usar token
   });
 
   const createProject = useMutation({
     mutationFn: async (newProject) => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
       const { data, error } = await supabase
         .from("projects")
-        .insert([{ ...newProject, user_id: userId }])
+        .insert([{ ...newProject, user_id: user.id }])
         .select()
         .single();
 
@@ -91,6 +108,6 @@ export const useProject = (id) => {
       if (error) throw error;
       return data;
     },
-    enabled: !!id,
+    enabled: !!id, // Só executa se id for válido
   });
 };

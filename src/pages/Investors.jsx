@@ -1,138 +1,18 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useInvestors } from "../hooks/useInvestors";
+import { useProposals } from "../hooks/useProposals";
+import { usePublicProjects } from "../hooks/usePublicProjects";
+import { useDashboard } from "../hooks/useDashboard";
 
 export function Investors() {
-  // Dados mockados
-  const [investors] = useState([
-    {
-      id: 1,
-      name: "João Investimentos LTDA",
-      type: "Pessoa Jurídica",
-      invested: 50000,
-      participation: 10,
-      projects: 3,
-      status: "active",
-      lastContact: "2026-06-20",
-      avatar: "JI",
-    },
-    {
-      id: 2,
-      name: "Carlos Silva",
-      type: "Pessoa Física",
-      invested: 25000,
-      participation: 5,
-      projects: 2,
-      status: "active",
-      lastContact: "2026-06-18",
-      avatar: "CS",
-    },
-    {
-      id: 3,
-      name: "Empresa XYZ",
-      type: "Pessoa Jurídica",
-      invested: 75000,
-      participation: 15,
-      projects: 4,
-      status: "active",
-      lastContact: "2026-06-15",
-      avatar: "EX",
-    },
-    {
-      id: 4,
-      name: "Fundo Imobiliário Alpha",
-      type: "Pessoa Jurídica",
-      invested: 100000,
-      participation: 20,
-      projects: 5,
-      status: "active",
-      lastContact: "2026-06-10",
-      avatar: "FI",
-    },
-    {
-      id: 5,
-      name: "Maria Santos",
-      type: "Pessoa Física",
-      invested: 15000,
-      participation: 3,
-      projects: 1,
-      status: "inactive",
-      lastContact: "2026-05-28",
-      avatar: "MS",
-    },
-  ]);
+  // Dados reais
+  const { investors, isLoading: investorsLoading } = useInvestors();
+  const { proposals, isLoading: proposalsLoading } = useProposals();
+  const { publicProjects, isLoading: publicLoading } = usePublicProjects();
+  const { data: dashboardData, isLoading: dashboardLoading } = useDashboard();
 
-  const [proposals] = useState([
-    {
-      id: 1,
-      investor: "Carlos Silva",
-      offer: 20000,
-      requestedReturn: 15,
-      status: "analysis",
-      date: "2026-06-22",
-      project: "Ampliação da Empresa",
-    },
-    {
-      id: 2,
-      investor: "João Investimentos LTDA",
-      offer: 50000,
-      requestedReturn: 12,
-      status: "approved",
-      date: "2026-06-19",
-      project: "Loft Distrito Histórico",
-    },
-    {
-      id: 3,
-      investor: "Empresa XYZ",
-      offer: 30000,
-      requestedReturn: 18,
-      status: "rejected",
-      date: "2026-06-14",
-      project: "Reforma da Casa",
-    },
-    {
-      id: 4,
-      investor: "Fundo Imobiliário Alpha",
-      offer: 80000,
-      requestedReturn: 10,
-      status: "analysis",
-      date: "2026-06-23",
-      project: "Cobertura Duplex",
-    },
-  ]);
-
-  const [publicProjects] = useState([
-    {
-      id: 1,
-      name: "Ampliação da Empresa",
-      goal: 500000,
-      raised: 150000,
-      progress: 30,
-      investors: 12,
-      expectedReturn: 18,
-      category: "Comercial",
-    },
-    {
-      id: 2,
-      name: "Loft Distrito Histórico",
-      goal: 300000,
-      raised: 120000,
-      progress: 40,
-      investors: 8,
-      expectedReturn: 15,
-      category: "Residencial",
-    },
-    {
-      id: 3,
-      name: "Parque Urbano",
-      goal: 800000,
-      raised: 200000,
-      progress: 25,
-      investors: 15,
-      expectedReturn: 20,
-      category: "Público",
-    },
-  ]);
-
+  // Oportunidades (notificações) - ainda mockadas, mas podem vir do banco depois
   const [opportunities] = useState([
     {
       id: 1,
@@ -160,6 +40,7 @@ export function Investors() {
     },
   ]);
 
+  // Chat - ainda mockado, mas pode vir do banco depois
   const [chatMessages] = useState([
     {
       id: 1,
@@ -178,13 +59,16 @@ export function Investors() {
     },
   ]);
 
-  // Estatísticas
-  const totalRaised = investors.reduce((sum, i) => sum + i.invested, 0);
-  const totalInvestors = investors.length;
-  const publicProjectsCount = publicProjects.length;
-  const pendingProposals = proposals.filter(
-    (p) => p.status === "analysis",
-  ).length;
+  // Estatísticas calculadas a partir dos dados reais
+  const totalRaised =
+    investors?.reduce((sum, i) => sum + (i.invested || 0), 0) || 0;
+  const totalInvestors = investors?.length || 0;
+  const publicProjectsCount = publicProjects?.length || 0;
+  const pendingProposals =
+    proposals?.filter((p) => p.status === "analysis").length || 0;
+
+  // Meta de captação (pode vir do dashboard ou de configurações)
+  const fundingGoal = dashboardData?.investments?.goal || 500000;
 
   // Status labels
   const proposalStatus = {
@@ -201,15 +85,30 @@ export function Investors() {
     inactive: "🔴 Inativo",
   };
 
-  // Gráfico de evolução (mock)
+  // Gráfico de evolução - pode ser substituído por dados reais depois
   const chartData = [
     { month: "Jan", value: 20000 },
     { month: "Fev", value: 35000 },
     { month: "Mar", value: 50000 },
     { month: "Abr", value: 75000 },
     { month: "Mai", value: 110000 },
-    { month: "Jun", value: 150000 },
+    { month: "Jun", value: totalRaised || 150000 },
   ];
+
+  // Estado de loading combinado
+  const isLoading =
+    investorsLoading || proposalsLoading || publicLoading || dashboardLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Carregando investidores...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -315,10 +214,12 @@ export function Investors() {
             </span>
             Novo Investidor
           </button>
-          <button className="btn-outline-glow px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50">
-            <span className="material-symbols-outlined text-lg">public</span>
-            Vitrine
-          </button>
+          <Link to="/investors/vitrine">
+            <button className="btn-outline-glow px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50">
+              <span className="material-symbols-outlined text-lg">public</span>
+              Vitrine
+            </button>
+          </Link>
         </div>
       </div>
 
@@ -387,19 +288,27 @@ export function Investors() {
               R$ {totalRaised.toLocaleString()}
             </span>
             <span className="text-gray-500"> de </span>
-            <span className="font-bold text-gray-800">R$ 500.000</span>
+            <span className="font-bold text-gray-800">
+              R$ {fundingGoal.toLocaleString()}
+            </span>
           </div>
         </div>
         <div className="mt-3">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>{Math.round((totalRaised / 500000) * 100)}% concluído</span>
-            <span>Faltam R$ {(500000 - totalRaised).toLocaleString()}</span>
+            <span>
+              {Math.min(Math.round((totalRaised / fundingGoal) * 100), 100)}%
+              concluído
+            </span>
+            <span>
+              Faltam R${" "}
+              {Math.max(fundingGoal - totalRaised, 0).toLocaleString()}
+            </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <div
               className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-1000"
               style={{
-                width: `${Math.min((totalRaised / 500000) * 100, 100)}%`,
+                width: `${Math.min((totalRaised / fundingGoal) * 100, 100)}%`,
               }}
             ></div>
           </div>
@@ -427,55 +336,68 @@ export function Investors() {
               </Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {investors.map((inv) => (
-                <div
-                  key={inv.id}
-                  className="bg-white/50 rounded-xl p-3 border border-gray-200 hover:shadow transition"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
-                        {inv.avatar}
+              {investors && investors.length > 0 ? (
+                investors.map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="bg-white/50 rounded-xl p-3 border border-gray-200 hover:shadow transition"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                          {inv.avatar || inv.name?.charAt(0) || "I"}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-800">
+                            {inv.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {inv.type || "Investidor"}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-sm text-gray-800">
-                          {inv.name}
+                      <span className="text-xs font-medium text-green-600">
+                        {inv.status === "active" ? "🟢 Ativo" : "🔴 Inativo"}
+                      </span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-1 text-xs">
+                      <div className="bg-gray-50 rounded p-1 text-center">
+                        <p className="font-bold text-blue-600">
+                          R$ {inv.invested?.toLocaleString() || "0"}
                         </p>
-                        <p className="text-xs text-gray-500">{inv.type}</p>
+                        <span className="text-gray-400">Investido</span>
+                      </div>
+                      <div className="bg-gray-50 rounded p-1 text-center">
+                        <p className="font-bold text-gray-700">
+                          {inv.participation || 0}%
+                        </p>
+                        <span className="text-gray-400">Participação</span>
+                      </div>
+                      <div className="bg-gray-50 rounded p-1 text-center">
+                        <p className="font-bold text-gray-700">
+                          {inv.projects || 0}
+                        </p>
+                        <span className="text-gray-400">Projetos</span>
                       </div>
                     </div>
-                    <span className="text-xs font-medium text-green-600">
-                      {investorStatus[inv.status]}
-                    </span>
-                  </div>
-                  <div className="mt-2 grid grid-cols-3 gap-1 text-xs">
-                    <div className="bg-gray-50 rounded p-1 text-center">
-                      <p className="font-bold text-blue-600">
-                        R$ {inv.invested.toLocaleString()}
-                      </p>
-                      <span className="text-gray-400">Investido</span>
-                    </div>
-                    <div className="bg-gray-50 rounded p-1 text-center">
-                      <p className="font-bold text-gray-700">
-                        {inv.participation}%
-                      </p>
-                      <span className="text-gray-400">Participação</span>
-                    </div>
-                    <div className="bg-gray-50 rounded p-1 text-center">
-                      <p className="font-bold text-gray-700">{inv.projects}</p>
-                      <span className="text-gray-400">Projetos</span>
+                    <div className="flex gap-1 mt-2">
+                      <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 rounded-lg text-xs font-medium">
+                        💬 Conversar
+                      </button>
+                      <button className="flex-1 border border-gray-300 rounded-lg py-1 text-xs hover:bg-gray-50">
+                        📊 Histórico
+                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-1 mt-2">
-                    <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 rounded-lg text-xs font-medium">
-                      💬 Conversar
-                    </button>
-                    <button className="flex-1 border border-gray-300 rounded-lg py-1 text-xs hover:bg-gray-50">
-                      📊 Histórico
-                    </button>
-                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-8 text-gray-500">
+                  <p>Nenhum investidor cadastrado.</p>
+                  <button className="mt-2 text-blue-600 hover:underline">
+                    Adicionar primeiro investidor
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -492,7 +414,10 @@ export function Investors() {
             </h3>
             <div className="flex items-end gap-3 h-40">
               {chartData.map((item) => {
-                const maxValue = 160000;
+                const maxValue = Math.max(
+                  ...chartData.map((d) => d.value),
+                  160000,
+                );
                 const height = (item.value / maxValue) * 100;
                 return (
                   <div
@@ -537,41 +462,47 @@ export function Investors() {
               </span>
             </div>
             <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
-              {proposals.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-white/50 rounded-lg p-3 border border-gray-200 hover:shadow transition"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-xs font-medium text-gray-800">
-                        {p.investor}
-                      </p>
-                      <p className="text-[10px] text-gray-500">{p.project}</p>
+              {proposals && proposals.length > 0 ? (
+                proposals.map((p) => (
+                  <div
+                    key={p.id}
+                    className="bg-white/50 rounded-lg p-3 border border-gray-200 hover:shadow transition"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-xs font-medium text-gray-800">
+                          {p.investor}
+                        </p>
+                        <p className="text-[10px] text-gray-500">{p.project}</p>
+                      </div>
+                      <span
+                        className={`text-[9px] px-2 py-0.5 rounded-full ${proposalStatus[p.status]?.color || "bg-gray-100 text-gray-600"}`}
+                      >
+                        {proposalStatus[p.status]?.label || "⏳ Em análise"}
+                      </span>
                     </div>
-                    <span
-                      className={`text-[9px] px-2 py-0.5 rounded-full ${proposalStatus[p.status].color}`}
-                    >
-                      {proposalStatus[p.status].label}
-                    </span>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>Oferta: R$ {p.offer?.toLocaleString() || "0"}</span>
+                      <span>Retorno: {p.requestedReturn || 0}%</span>
+                    </div>
+                    <div className="flex gap-1 mt-2">
+                      <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1 rounded text-xs font-medium">
+                        ✅ Aceitar
+                      </button>
+                      <button className="flex-1 bg-red-500 hover:bg-red-600 text-white py-1 rounded text-xs font-medium">
+                        ❌ Recusar
+                      </button>
+                      <button className="flex-1 border border-gray-300 rounded py-1 text-xs hover:bg-gray-50">
+                        💬 Negociar
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Oferta: R$ {p.offer.toLocaleString()}</span>
-                    <span>Retorno: {p.requestedReturn}%</span>
-                  </div>
-                  <div className="flex gap-1 mt-2">
-                    <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1 rounded text-xs font-medium">
-                      ✅ Aceitar
-                    </button>
-                    <button className="flex-1 bg-red-500 hover:bg-red-600 text-white py-1 rounded text-xs font-medium">
-                      ❌ Recusar
-                    </button>
-                    <button className="flex-1 border border-gray-300 rounded py-1 text-xs hover:bg-gray-50">
-                      💬 Negociar
-                    </button>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  <p>Nenhuma proposta recebida.</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -642,48 +573,61 @@ export function Investors() {
               </Link>
             </div>
             <div className="space-y-2">
-              {publicProjects.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-white/50 rounded-lg p-3 border border-gray-200 hover:shadow transition"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-xs font-medium text-gray-800">
-                        {p.name}
-                      </p>
-                      <p className="text-[10px] text-gray-500">{p.category}</p>
+              {publicProjects && publicProjects.length > 0 ? (
+                publicProjects.map((p) => (
+                  <div
+                    key={p.id}
+                    className="bg-white/50 rounded-lg p-3 border border-gray-200 hover:shadow transition"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-xs font-medium text-gray-800">
+                          {p.name}
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          {p.category}
+                        </p>
+                      </div>
+                      <span className="badge-glow-secondary text-[9px] px-2 py-0.5 rounded-full">
+                        {p.investors || 0} investidores
+                      </span>
                     </div>
-                    <span className="badge-glow-secondary text-[9px] px-2 py-0.5 rounded-full">
-                      {p.investors} investidores
-                    </span>
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Meta: R$ {p.goal?.toLocaleString() || "0"}</span>
+                        <span>
+                          Captado: R$ {p.raised?.toLocaleString() || "0"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 mt-0.5">
+                        <span>Progresso</span>
+                        <span>{p.progress || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                        <div
+                          className="bg-purple-500 h-1.5 rounded-full"
+                          style={{ width: `${p.progress || 0}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center mt-2 text-xs">
+                      <span className="text-green-600">
+                        Retorno previsto: {p.expectedReturn || 0}%
+                      </span>
+                      <Link
+                        to={`/projects/${p.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        🔍 Ver Projeto
+                      </Link>
+                    </div>
                   </div>
-                  <div className="mt-2">
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Meta: R$ {p.goal.toLocaleString()}</span>
-                      <span>Captado: R$ {p.raised.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 mt-0.5">
-                      <span>Progresso</span>
-                      <span>{p.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                      <div
-                        className="bg-purple-500 h-1.5 rounded-full"
-                        style={{ width: `${p.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center mt-2 text-xs">
-                    <span className="text-green-600">
-                      Retorno previsto: {p.expectedReturn}%
-                    </span>
-                    <button className="text-blue-600 hover:underline">
-                      🔍 Ver Projeto
-                    </button>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  <p>Nenhum projeto público disponível.</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

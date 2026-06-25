@@ -1,77 +1,12 @@
-// -- Project -- //
-
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
+
 export function Projects() {
-  // Dados mockados
-  const initialProjects = [
-    {
-      id: 1,
-      name: "Reforma da Casa",
-      category: "Construção",
-      budget: 50000,
-      spent: 20000,
-      progress: 60,
-      visibility: "private",
-      tasks: 12,
-      team: 4,
-      materials: 38,
-      date: "2025-01-15",
-    },
-    {
-      id: 2,
-      name: "Ampliação da Empresa",
-      category: "Empresarial",
-      budget: 250000,
-      spent: 90000,
-      progress: 40,
-      visibility: "public",
-      tasks: 24,
-      team: 8,
-      materials: 55,
-      date: "2025-02-20",
-    },
-    {
-      id: 3,
-      name: "Loft Distrito Histórico",
-      category: "Renovação",
-      budget: 120000,
-      spent: 38000,
-      progress: 32,
-      visibility: "public",
-      tasks: 18,
-      team: 6,
-      materials: 42,
-      date: "2025-03-10",
-    },
-    {
-      id: 4,
-      name: "Cobertura Duplex",
-      category: "Construção",
-      budget: 180000,
-      spent: 72000,
-      progress: 55,
-      visibility: "private",
-      tasks: 20,
-      team: 5,
-      materials: 30,
-      date: "2025-01-28",
-    },
-    {
-      id: 5,
-      name: "Jardim Vertical",
-      category: "Paisagismo",
-      budget: 30000,
-      spent: 12000,
-      progress: 80,
-      visibility: "public",
-      tasks: 8,
-      team: 2,
-      materials: 15,
-      date: "2025-03-05",
-    },
-  ];
+  const navigate = useNavigate();
+
+  // Dados reais do Supabase
+  const { projects, isLoading, error, deleteProject } = useProjects();
 
   // Estados para filtros e busca
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,60 +15,153 @@ export function Projects() {
   const [budgetFilter, setBudgetFilter] = useState("Todos");
   const [sortBy, setSortBy] = useState("data");
 
-  // Obter categorias únicas para o filtro
-  const categories = [
-    "Todas",
-    ...new Set(initialProjects.map((p) => p.category)),
-  ];
+  // Obter categorias únicas dos dados reais
+  const categories = useMemo(() => {
+    if (!projects) return ["Todas"];
+    return [
+      "Todas",
+      ...new Set(projects.map((p) => p.category).filter(Boolean)),
+    ];
+  }, [projects]);
 
-  // Aplicar filtros
-  const filteredProjects = initialProjects
-    .filter((p) => {
-      // Busca por nome
-      if (
-        searchTerm &&
-        !p.name.toLowerCase().includes(searchTerm.toLowerCase())
-      ) {
-        return false;
-      }
-      // Filtro por categoria
-      if (categoryFilter !== "Todas" && p.category !== categoryFilter) {
-        return false;
-      }
-      // Filtro por visibilidade
-      if (visibilityFilter !== "Todos" && p.visibility !== visibilityFilter) {
-        return false;
-      }
-      // Filtro por orçamento
-      if (budgetFilter === "Abaixo de 50k" && p.budget >= 50000) return false;
-      if (
-        budgetFilter === "50k - 100k" &&
-        (p.budget < 50000 || p.budget > 100000)
-      )
-        return false;
-      if (
-        budgetFilter === "100k - 200k" &&
-        (p.budget < 100000 || p.budget > 200000)
-      )
-        return false;
-      if (budgetFilter === "Acima de 200k" && p.budget <= 200000) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy === "data") return new Date(b.date) - new Date(a.date);
-      if (sortBy === "nome") return a.name.localeCompare(b.name);
-      if (sortBy === "orcamento") return b.budget - a.budget;
-      if (sortBy === "progresso") return b.progress - a.progress;
-      return 0;
-    });
+  // Aplicar filtros e ordenação nos dados reais
+  const filteredProjects = useMemo(() => {
+    if (!projects) return [];
 
-  // Estatísticas para o gráfico resumido
-  const totalBudget = initialProjects.reduce((sum, p) => sum + p.budget, 0);
-  const totalSpent = initialProjects.reduce((sum, p) => sum + p.spent, 0);
-  const totalProjects = initialProjects.length;
-  const avgProgress = Math.round(
-    initialProjects.reduce((sum, p) => sum + p.progress, 0) / totalProjects,
-  );
+    return projects
+      .filter((p) => {
+        // Busca por nome
+        if (
+          searchTerm &&
+          !p.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        ) {
+          return false;
+        }
+        // Filtro por categoria
+        if (categoryFilter !== "Todas" && p.category !== categoryFilter) {
+          return false;
+        }
+        // Filtro por visibilidade
+        if (visibilityFilter !== "Todos" && p.visibility !== visibilityFilter) {
+          return false;
+        }
+        // Filtro por orçamento
+        const budget = p.budget || 0;
+        if (budgetFilter === "Abaixo de 50k" && budget >= 50000) return false;
+        if (
+          budgetFilter === "50k - 100k" &&
+          (budget < 50000 || budget > 100000)
+        )
+          return false;
+        if (
+          budgetFilter === "100k - 200k" &&
+          (budget < 100000 || budget > 200000)
+        )
+          return false;
+        if (budgetFilter === "Acima de 200k" && budget <= 200000) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === "data") {
+          return (
+            new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
+          );
+        }
+        if (sortBy === "nome")
+          return (a.name || "").localeCompare(b.name || "");
+        if (sortBy === "orcamento") return (b.budget || 0) - (a.budget || 0);
+        if (sortBy === "progresso")
+          return (b.progress || 0) - (a.progress || 0);
+        return 0;
+      });
+  }, [
+    projects,
+    searchTerm,
+    categoryFilter,
+    visibilityFilter,
+    budgetFilter,
+    sortBy,
+  ]);
+
+  // Estatísticas calculadas a partir dos dados reais
+  const totalBudget =
+    projects?.reduce((sum, p) => sum + (p.budget || 0), 0) || 0;
+  const totalSpent = projects?.reduce((sum, p) => sum + (p.spent || 0), 0) || 0;
+  const totalProjects = projects?.length || 0;
+  const avgProgress =
+    totalProjects > 0
+      ? Math.round(
+          projects.reduce((sum, p) => sum + (p.progress || 0), 0) /
+            totalProjects,
+        )
+      : 0;
+
+  // Verifica se o erro é de autenticação
+  const isAuthError =
+    error?.message?.includes("JWT") ||
+    error?.message?.includes("auth") ||
+    error?.message?.includes("session") ||
+    error?.message?.includes("undefined");
+
+  // Estado de loading
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Carregando projetos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Estado de erro com tratamento especial para autenticação
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center max-w-md p-8 bg-white rounded-xl shadow-lg">
+          {isAuthError ? (
+            <>
+              <span className="material-symbols-outlined text-6xl text-red-400 block">
+                lock
+              </span>
+              <p className="text-xl font-semibold text-red-600 mt-4">
+                Sessão expirada
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Sua sessão expirou ou você não está autenticado. Faça login
+                novamente para continuar.
+              </p>
+              <button
+                onClick={() => navigate("/login")}
+                className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Ir para o login
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined text-6xl text-red-400 block">
+                error
+              </span>
+              <p className="text-xl font-semibold text-red-600 mt-4">
+                Erro ao carregar projetos
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                {error.message || "Ocorreu um erro inesperado."}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Tentar novamente
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -213,10 +241,12 @@ export function Projects() {
             Gerencie todos os seus projetos em um único lugar.
           </p>
         </div>
-        <button className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0">
-          <span className="material-symbols-outlined text-lg">add</span>
-          Novo Projeto
-        </button>
+        <Link to="/projects/new">
+          <button className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0">
+            <span className="material-symbols-outlined text-lg">add</span>
+            Novo Projeto
+          </button>
+        </Link>
       </div>
 
       {/* Cards de resumo */}
@@ -276,33 +306,47 @@ export function Projects() {
           Resumo por Projeto
         </h3>
         <div className="flex items-end gap-4 h-32 overflow-x-auto">
-          {initialProjects.map((p) => (
-            <div
-              key={p.id}
-              className="flex flex-col items-center flex-1 min-w-[40px]"
-            >
-              <div className="relative w-full flex justify-center">
+          {projects && projects.length > 0 ? (
+            projects.slice(0, 10).map((p) => {
+              const maxBudget = Math.max(
+                ...projects.map((pr) => pr.budget || 0),
+                1,
+              );
+              const budgetHeight = ((p.budget || 0) / maxBudget) * 100;
+              const spentHeight = ((p.spent || 0) / maxBudget) * 100;
+              return (
                 <div
-                  className="w-6 bg-blue-500 rounded-t transition-all duration-500"
-                  style={{
-                    height: `${(p.budget / 300000) * 100}%`,
-                    minHeight: "4px",
-                  }}
-                  title={`${p.name}: R$ ${p.budget.toLocaleString()}`}
-                ></div>
-                <div
-                  className="w-6 bg-green-400 rounded-t absolute bottom-0 transition-all duration-500"
-                  style={{
-                    height: `${(p.spent / 300000) * 100}%`,
-                    minHeight: "4px",
-                  }}
-                ></div>
-              </div>
-              <span className="text-[10px] text-gray-500 mt-1 truncate max-w-[50px]">
-                {p.name.slice(0, 8)}
-              </span>
+                  key={p.id}
+                  className="flex flex-col items-center flex-1 min-w-[40px]"
+                >
+                  <div className="relative w-full flex justify-center">
+                    <div
+                      className="w-6 bg-blue-500 rounded-t transition-all duration-500"
+                      style={{
+                        height: `${Math.min(budgetHeight, 100)}%`,
+                        minHeight: "4px",
+                      }}
+                      title={`${p.name}: R$ ${p.budget?.toLocaleString()}`}
+                    ></div>
+                    <div
+                      className="w-6 bg-green-400 rounded-t absolute bottom-0 transition-all duration-500"
+                      style={{
+                        height: `${Math.min(spentHeight, 100)}%`,
+                        minHeight: "4px",
+                      }}
+                    ></div>
+                  </div>
+                  <span className="text-[10px] text-gray-500 mt-1 truncate max-w-[50px]">
+                    {p.name?.slice(0, 8) || "Projeto"}
+                  </span>
+                </div>
+              );
+            })
+          ) : (
+            <div className="w-full text-center text-gray-400 py-8">
+              Nenhum projeto para exibir no gráfico.
             </div>
-          ))}
+          )}
         </div>
         <div className="flex justify-center gap-4 text-xs text-gray-500 mt-2">
           <span className="flex items-center gap-1">
@@ -423,6 +467,11 @@ export function Projects() {
           <p className="text-sm text-gray-500">
             Tente ajustar os filtros ou criar um novo projeto.
           </p>
+          <Link to="/projects/new">
+            <button className="mt-4 btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+              + Criar Projeto
+            </button>
+          </Link>
         </div>
       ) : (
         <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -446,7 +495,9 @@ export function Projects() {
                       : "🔒 Privado"}
                   </span>
                 </div>
-                <p className="text-sm text-white/80">{project.category}</p>
+                <p className="text-sm text-white/80">
+                  {project.category || "Sem categoria"}
+                </p>
               </div>
 
               <div className="p-4">
@@ -455,19 +506,22 @@ export function Projects() {
                   <div className="flex justify-between">
                     <span className="text-gray-500">Orçamento</span>
                     <span className="font-medium">
-                      R$ {project.budget.toLocaleString()}
+                      R$ {project.budget?.toLocaleString() || "0"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Gasto</span>
                     <span className="font-medium">
-                      R$ {project.spent.toLocaleString()}
+                      R$ {project.spent?.toLocaleString() || "0"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Saldo</span>
                     <span className="font-medium text-green-600">
-                      R$ {(project.budget - project.spent).toLocaleString()}
+                      R${" "}
+                      {(
+                        (project.budget || 0) - (project.spent || 0)
+                      ).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -476,29 +530,33 @@ export function Projects() {
                 <div className="mt-3">
                   <div className="flex justify-between text-xs text-gray-500 mb-1">
                     <span>Progresso</span>
-                    <span>{project.progress}%</span>
+                    <span>{project.progress || 0}%</span>
                   </div>
                   <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className="h-2 bg-blue-600 rounded-full transition-all duration-1000"
-                      style={{ width: `${project.progress}%` }}
+                      style={{ width: `${project.progress || 0}%` }}
                     ></div>
                   </div>
                 </div>
 
-                {/* Estatísticas rápidas */}
+                {/* Estatísticas rápidas (mockadas, podem ser substituídas por dados reais) */}
                 <div className="grid grid-cols-3 gap-2 mt-4 text-center text-xs">
                   <div className="bg-gray-50 rounded-lg py-1">
-                    <p className="font-bold text-gray-800">{project.tasks}</p>
+                    <p className="font-bold text-gray-800">
+                      {project.tasks || 0}
+                    </p>
                     <span className="text-gray-500">Tarefas</span>
                   </div>
                   <div className="bg-gray-50 rounded-lg py-1">
-                    <p className="font-bold text-gray-800">{project.team}</p>
+                    <p className="font-bold text-gray-800">
+                      {project.team || 0}
+                    </p>
                     <span className="text-gray-500">Equipe</span>
                   </div>
                   <div className="bg-gray-50 rounded-lg py-1">
                     <p className="font-bold text-gray-800">
-                      {project.materials}
+                      {project.materials || 0}
                     </p>
                     <span className="text-gray-500">Materiais</span>
                   </div>
@@ -506,14 +564,24 @@ export function Projects() {
 
                 {/* Botões de ação */}
                 <div className="flex gap-2 mt-4">
-                  <button className="flex-1 btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium">
-                    Abrir
-                  </button>
-                  <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
-                    ✏️
-                  </button>
-                  <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
-                    📊
+                  <Link to={`/projects/${project.id}`} className="flex-1">
+                    <button className="w-full btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium">
+                      Abrir
+                    </button>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Tem certeza que deseja excluir o projeto "${project.name}"?`,
+                        )
+                      ) {
+                        deleteProject.mutate(project.id);
+                      }
+                    }}
+                    className="px-3 py-2 border border-red-300 rounded-lg hover:bg-red-50 text-sm text-red-500"
+                  >
+                    🗑️
                   </button>
                 </div>
               </div>
