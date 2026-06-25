@@ -7,57 +7,25 @@ export const useProposals = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["proposals"],
     queryFn: async () => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      if (!userId) return [];
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.warn("Usuário não autenticado, retornando lista vazia");
+        return [];
+      }
       const { data, error } = await supabase
         .from("proposals")
         .select("*, investors(name)")
-        .eq("user_id", userId)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data || [];
     },
+    staleTime: 60000,
   });
 
-  const createProposal = useMutation({
-    mutationFn: async (newProposal) => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      const { data, error } = await supabase
-        .from("proposals")
-        .insert([{ ...newProposal, user_id: userId }])
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["proposals"]);
-      queryClient.invalidateQueries(["dashboard"]);
-    },
-  });
-
-  const updateProposalStatus = useMutation({
-    mutationFn: async ({ id, status }) => {
-      const { data, error } = await supabase
-        .from("proposals")
-        .update({ status })
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["proposals"]);
-    },
-  });
-
-  return {
-    proposals: data || [],
-    isLoading,
-    error,
-    createProposal,
-    updateProposalStatus,
-  };
+  return { proposals: data || [], isLoading, error };
 };

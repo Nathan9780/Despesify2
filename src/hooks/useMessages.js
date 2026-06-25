@@ -1,24 +1,6 @@
-// src/hooks/useMessages.js
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { useEffect } from "react";
-
-export const useConversations = () => {
-  return useQuery({
-    queryKey: ["conversations"],
-    queryFn: async () => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*, messages(count), participants(*)")
-        .eq("user_id", userId)
-        .order("updated_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-  });
-};
 
 export const useMessages = (conversationId) => {
   const queryClient = useQueryClient();
@@ -26,6 +8,8 @@ export const useMessages = (conversationId) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: async () => {
+      if (!conversationId) return [];
+
       const { data, error } = await supabase
         .from("messages")
         .select("*")
@@ -33,28 +17,51 @@ export const useMessages = (conversationId) => {
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!conversationId,
+    staleTime: 30000,
   });
 
-  // Mutação para enviar mensagem
+  // Enviar mensagem
   const sendMessage = useMutation({
     mutationFn: async ({ conversationId, content }) => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
       const { data, error } = await supabase
         .from("messages")
-        .insert([{ conversation_id: conversationId, user_id: userId, content }])
+        .insert([
+          {
+            conversation_id: conversationId,
+            user_id: user.id,
+            content,
+            is_read: false,
+          },
+        ])
         .select()
         .single();
 
       if (error) throw error;
+
+      // Atualizar a conversa com a última mensagem
+      await supabase
+        .from("conversations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", conversationId);
+
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["messages", conversationId]);
+    onSuccess: (newMessage) => {
+      // Atualizar cache da conversa atual
+      queryClient.setQueryData(["messages", conversationId], (old) => {
+        if (!old) return [newMessage];
+        return [...old, newMessage];
+      });
+      // Invalidar lista de conversas para atualizar a última mensagem
       queryClient.invalidateQueries(["conversations"]);
-      queryClient.invalidateQueries(["dashboard"]);
     },
   });
 
@@ -73,11 +80,15 @@ export const useMessages = (conversationId) => {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          // Adicionar a nova mensagem ao cache manualmente
+          // Adicionar a nova mensagem ao cache
           queryClient.setQueryData(["messages", conversationId], (old) => {
             if (!old) return [payload.new];
+            // Evitar duplicatas
+            if (old.some((msg) => msg.id === payload.new.id)) return old;
             return [...old, payload.new];
           });
+          // Invalidar conversas para atualizar a última mensagem
+          queryClient.invalidateQueries(["conversations"]);
         },
       )
       .subscribe();
@@ -87,5 +98,10 @@ export const useMessages = (conversationId) => {
     };
   }, [conversationId, queryClient]);
 
-  return { messages: data || [], isLoading, error, sendMessage };
+  return {
+    messages: data || [],
+    isLoading,
+    error,
+    sendMessage,
+  };
 };

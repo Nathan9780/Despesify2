@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useInvestors } from "../hooks/useInvestors";
 import { useProposals } from "../hooks/useProposals";
@@ -6,98 +6,140 @@ import { usePublicProjects } from "../hooks/usePublicProjects";
 import { useDashboard } from "../hooks/useDashboard";
 
 export function Investors() {
-  // Dados reais
-  const { investors, isLoading: investorsLoading } = useInvestors();
-  const { proposals, isLoading: proposalsLoading } = useProposals();
-  const { publicProjects, isLoading: publicLoading } = usePublicProjects();
-  const { data: dashboardData, isLoading: dashboardLoading } = useDashboard();
+  // Dados reais com cache otimizado (React Query já faz cache)
+  const {
+    investors,
+    isLoading: investorsLoading,
+    error: investorsError,
+  } = useInvestors();
+  const {
+    proposals,
+    isLoading: proposalsLoading,
+    error: proposalsError,
+  } = useProposals();
+  const {
+    publicProjects,
+    isLoading: publicLoading,
+    error: publicError,
+  } = usePublicProjects();
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+  } = useDashboard();
 
-  // Oportunidades (notificações) - ainda mockadas, mas podem vir do banco depois
-  const [opportunities] = useState([
-    {
-      id: 1,
-      text: "Novo investidor interessado no projeto 'Ampliação'",
-      time: "5 min",
-      type: "new",
-    },
-    {
-      id: 2,
-      text: "Proposta recebida de Fundo Imobiliário Alpha",
-      time: "1 hora",
-      type: "proposal",
-    },
-    {
-      id: 3,
-      text: "Investimento de R$ 50.000 aprovado",
-      time: "3 horas",
-      type: "approved",
-    },
-    {
-      id: 4,
-      text: "Meta de captação do projeto 'Loft' atingiu 40%",
-      time: "1 dia",
-      type: "milestone",
-    },
-  ]);
+  // Oportunidades (notificações) - dados estáticos
+  const opportunities = useMemo(
+    () => [
+      {
+        id: 1,
+        text: "Novo investidor interessado no projeto 'Ampliação'",
+        time: "5 min",
+        type: "new",
+      },
+      {
+        id: 2,
+        text: "Proposta recebida de Fundo Imobiliário Alpha",
+        time: "1 hora",
+        type: "proposal",
+      },
+      {
+        id: 3,
+        text: "Investimento de R$ 50.000 aprovado",
+        time: "3 horas",
+        type: "approved",
+      },
+      {
+        id: 4,
+        text: "Meta de captação do projeto 'Loft' atingiu 40%",
+        time: "1 dia",
+        type: "milestone",
+      },
+    ],
+    [],
+  );
 
-  // Chat - ainda mockado, mas pode vir do banco depois
-  const [chatMessages] = useState([
-    {
-      id: 1,
-      from: "João Investimentos LTDA",
-      message:
-        "Olá, tenho interesse no projeto de ampliação. Podemos agendar uma reunião?",
-      time: "2 horas",
-      unread: true,
-    },
-    {
-      id: 2,
-      from: "Carlos Invest",
-      message: "Gostaria de discutir a proposta de investimento no Loft.",
-      time: "5 horas",
-      unread: false,
-    },
-  ]);
+  // Chat - dados estáticos
+  const chatMessages = useMemo(
+    () => [
+      {
+        id: 1,
+        from: "João Investimentos LTDA",
+        message:
+          "Olá, tenho interesse no projeto de ampliação. Podemos agendar uma reunião?",
+        time: "2 horas",
+        unread: true,
+      },
+      {
+        id: 2,
+        from: "Carlos Invest",
+        message: "Gostaria de discutir a proposta de investimento no Loft.",
+        time: "5 horas",
+        unread: false,
+      },
+    ],
+    [],
+  );
 
-  // Estatísticas calculadas a partir dos dados reais
-  const totalRaised =
-    investors?.reduce((sum, i) => sum + (i.invested || 0), 0) || 0;
-  const totalInvestors = investors?.length || 0;
-  const publicProjectsCount = publicProjects?.length || 0;
-  const pendingProposals =
-    proposals?.filter((p) => p.status === "analysis").length || 0;
+  // ===== ESTATÍSTICAS MEMOIZADAS =====
+  const stats = useMemo(() => {
+    const totalRaised =
+      investors?.reduce((sum, i) => sum + (i.invested || 0), 0) || 0;
+    const totalInvestors = investors?.length || 0;
+    const publicProjectsCount = publicProjects?.length || 0;
+    const pendingProposals =
+      proposals?.filter((p) => p.status === "analysis").length || 0;
+    const fundingGoal = dashboardData?.investments?.goal || 500000;
 
-  // Meta de captação (pode vir do dashboard ou de configurações)
-  const fundingGoal = dashboardData?.investments?.goal || 500000;
+    return {
+      totalRaised,
+      totalInvestors,
+      publicProjectsCount,
+      pendingProposals,
+      fundingGoal,
+    };
+  }, [investors, publicProjects, proposals, dashboardData]);
 
-  // Status labels
-  const proposalStatus = {
-    analysis: {
-      label: "⏳ Em análise",
-      color: "bg-yellow-100 text-yellow-700",
-    },
-    approved: { label: "✅ Aprovado", color: "bg-green-100 text-green-700" },
-    rejected: { label: "❌ Recusado", color: "bg-red-100 text-red-700" },
-  };
+  // ===== GRÁFICO MEMOIZADO =====
+  const chartData = useMemo(() => {
+    const baseData = [
+      { month: "Jan", value: 20000 },
+      { month: "Fev", value: 35000 },
+      { month: "Mar", value: 50000 },
+      { month: "Abr", value: 75000 },
+      { month: "Mai", value: 110000 },
+    ];
+    return [...baseData, { month: "Jun", value: stats.totalRaised || 150000 }];
+  }, [stats.totalRaised]);
 
-  const investorStatus = {
-    active: "🟢 Ativo",
-    inactive: "🔴 Inativo",
-  };
+  // ===== STATUS LABELS =====
+  const proposalStatus = useMemo(
+    () => ({
+      analysis: {
+        label: "⏳ Em análise",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      approved: { label: "✅ Aprovado", color: "bg-green-100 text-green-700" },
+      rejected: { label: "❌ Recusado", color: "bg-red-100 text-red-700" },
+    }),
+    [],
+  );
 
-  // Gráfico de evolução - pode ser substituído por dados reais depois
-  const chartData = [
-    { month: "Jan", value: 20000 },
-    { month: "Fev", value: 35000 },
-    { month: "Mar", value: 50000 },
-    { month: "Abr", value: 75000 },
-    { month: "Mai", value: 110000 },
-    { month: "Jun", value: totalRaised || 150000 },
-  ];
+  const investorStatus = useMemo(
+    () => ({
+      active: "🟢 Ativo",
+      inactive: "🔴 Inativo",
+    }),
+    [],
+  );
 
-  // Estado de loading combinado
+  // ===== ESTADO DE LOADING COMBINADO =====
   const isLoading =
     investorsLoading || proposalsLoading || publicLoading || dashboardLoading;
+
+  // ===== TRATAMENTO DE ERRO =====
+  const error =
+    investorsError || proposalsError || publicError || dashboardError;
 
   if (isLoading) {
     return (
@@ -110,6 +152,31 @@ export function Investors() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center max-w-md p-8 bg-white rounded-xl shadow-lg">
+          <span className="material-symbols-outlined text-6xl text-red-400 block">
+            error
+          </span>
+          <p className="text-xl font-semibold text-red-600 mt-4">
+            Erro ao carregar dados
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            {error.message || "Ocorreu um erro inesperado."}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ===== RENDER =====
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <style>{`
@@ -234,7 +301,7 @@ export function Investors() {
             Total Captado
           </p>
           <p className="text-xl font-bold text-green-600">
-            R$ {totalRaised.toLocaleString()}
+            R$ {stats.totalRaised.toLocaleString()}
           </p>
         </div>
         <div className="glass-card rounded-xl p-4 hover-lift">
@@ -242,7 +309,9 @@ export function Investors() {
             <span className="material-symbols-outlined text-sm">groups</span>
             Investidores
           </p>
-          <p className="text-xl font-bold text-gray-800">{totalInvestors}</p>
+          <p className="text-xl font-bold text-gray-800">
+            {stats.totalInvestors}
+          </p>
         </div>
         <div className="glass-card rounded-xl p-4 hover-lift">
           <p className="text-xs text-gray-500 flex items-center gap-1">
@@ -252,7 +321,7 @@ export function Investors() {
             Projetos Públicos
           </p>
           <p className="text-xl font-bold text-gray-800">
-            {publicProjectsCount}
+            {stats.publicProjectsCount}
           </p>
         </div>
         <div className="glass-card rounded-xl p-4 hover-lift">
@@ -261,7 +330,7 @@ export function Investors() {
             Propostas Pendentes
           </p>
           <p className="text-xl font-bold text-orange-500">
-            {pendingProposals}
+            {stats.pendingProposals}
           </p>
         </div>
       </div>
@@ -285,32 +354,38 @@ export function Investors() {
           </div>
           <div className="mt-2 sm:mt-0 text-sm">
             <span className="font-bold text-green-600">
-              R$ {totalRaised.toLocaleString()}
+              R$ {stats.totalRaised.toLocaleString()}
             </span>
             <span className="text-gray-500"> de </span>
             <span className="font-bold text-gray-800">
-              R$ {fundingGoal.toLocaleString()}
+              R$ {stats.fundingGoal.toLocaleString()}
             </span>
           </div>
         </div>
         <div className="mt-3">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
             <span>
-              {Math.min(Math.round((totalRaised / fundingGoal) * 100), 100)}%
-              concluído
+              {Math.min(
+                Math.round((stats.totalRaised / stats.fundingGoal) * 100),
+                100,
+              )}
+              % concluído
             </span>
             <span>
               Faltam R${" "}
-              {Math.max(fundingGoal - totalRaised, 0).toLocaleString()}
+              {Math.max(
+                stats.fundingGoal - stats.totalRaised,
+                0,
+              ).toLocaleString()}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <div
               className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-1000"
               style={{
-                width: `${Math.min((totalRaised / fundingGoal) * 100, 100)}%`,
+                width: `${Math.min((stats.totalRaised / stats.fundingGoal) * 100, 100)}%`,
               }}
-            ></div>
+            />
           </div>
         </div>
       </div>
@@ -428,7 +503,7 @@ export function Investors() {
                       <div
                         className="chart-bar w-8 bg-gradient-to-t from-green-400 to-blue-500 rounded-t"
                         style={{ height: `${height}%`, minHeight: "4px" }}
-                      ></div>
+                      />
                     </div>
                     <span className="text-[10px] text-gray-500 mt-1">
                       {item.month}
@@ -458,7 +533,7 @@ export function Investors() {
                 Propostas Recebidas
               </h3>
               <span className="text-xs font-medium text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
-                {pendingProposals} pendentes
+                {stats.pendingProposals} pendentes
               </span>
             </div>
             <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
@@ -500,7 +575,7 @@ export function Investors() {
                 ))
               ) : (
                 <div className="text-center py-4 text-gray-500 text-sm">
-                  <p>Nenhuma proposta recebida.</p>
+                  Nenhuma proposta recebida.
                 </div>
               )}
             </div>
@@ -607,7 +682,7 @@ export function Investors() {
                         <div
                           className="bg-purple-500 h-1.5 rounded-full"
                           style={{ width: `${p.progress || 0}%` }}
-                        ></div>
+                        />
                       </div>
                     </div>
                     <div className="flex justify-between items-center mt-2 text-xs">
@@ -625,7 +700,7 @@ export function Investors() {
                 ))
               ) : (
                 <div className="text-center py-4 text-gray-500 text-sm">
-                  <p>Nenhum projeto público disponível.</p>
+                  Nenhum projeto público disponível.
                 </div>
               )}
             </div>

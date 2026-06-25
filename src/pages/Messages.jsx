@@ -1,289 +1,142 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { useConversations } from "../hooks/useConversations";
+import { useMessages } from "../hooks/useMessages";
 
 export function Messages() {
-  // Dados mockados das conversas
-  const initialChats = [
-    {
-      id: 1,
-      name: "João Investimentos",
-      type: "investor",
-      lastMessage: "Tenho interesse no projeto de ampliação.",
-      time: "10:45",
-      unread: 2,
-      online: true,
-      avatar: "JI",
-      email: "joao@investimentos.com",
-      invested: 50000,
-      projects: 3,
-      status: "active",
-      messages: [
-        {
-          id: 1,
-          from: "João Investimentos",
-          text: "Olá, gostaria de investir no projeto de ampliação.",
-          time: "10:30",
-        },
-        {
-          id: 2,
-          from: "Você",
-          text: "Ótimo! Qual valor você pretende aportar?",
-          time: "10:35",
-        },
-        {
-          id: 3,
-          from: "João Investimentos",
-          text: "Penso em R$ 50.000, com retorno de 15% ao ano.",
-          time: "10:40",
-        },
-        {
-          id: 4,
-          from: "Você",
-          text: "Vamos analisar a proposta e te retorno em breve.",
-          time: "10:42",
-        },
-        {
-          id: 5,
-          from: "João Investimentos",
-          text: "Aguardarei seu contato. Obrigado!",
-          time: "10:45",
-        },
-      ],
-      proposal: {
-        value: 50000,
-        return: 15,
-        term: 12,
-        status: "pending",
-      },
-    },
-    {
-      id: 2,
-      name: "Casa do Cimento",
-      type: "supplier",
-      lastMessage: "Seu orçamento de materiais está pronto.",
-      time: "09:30",
-      unread: 0,
-      online: false,
-      avatar: "CC",
-      email: "contato@casacimento.com",
-      phone: "(31) 99999-1111",
-      rating: 4.8,
-      distance: "2.4 km",
-      messages: [
-        {
-          id: 1,
-          from: "Casa do Cimento",
-          text: "Olá! Já finalizamos o orçamento dos materiais.",
-          time: "09:00",
-        },
-        {
-          id: 2,
-          from: "Você",
-          text: "Perfeito! Pode me enviar os detalhes?",
-          time: "09:10",
-        },
-        {
-          id: 3,
-          from: "Casa do Cimento",
-          text: "Segue em anexo o PDF com todos os itens.",
-          time: "09:20",
-        },
-        {
-          id: 4,
-          from: "Casa do Cimento",
-          text: "Seu orçamento de materiais está pronto.",
-          time: "09:30",
-        },
-      ],
-      files: [{ name: "Orçamento_Materiais.pdf", size: "2.4 MB", icon: "pdf" }],
-      proposal: null,
-    },
-    {
-      id: 3,
-      name: "Carlos Eletricista",
-      type: "worker",
-      lastMessage: "Pagamento pendente da semana passada.",
-      time: "Ontem",
-      unread: 1,
-      online: false,
-      avatar: "CE",
-      email: "carlos@eletrica.com",
-      phone: "(31) 99999-2222",
-      rating: 4.5,
-      messages: [
-        {
-          id: 1,
-          from: "Carlos Eletricista",
-          text: "Olá! Já finalizei a instalação elétrica.",
-          time: "Ontem 14:00",
-        },
-        {
-          id: 2,
-          from: "Você",
-          text: "Ótimo! Vou verificar e te dou um retorno.",
-          time: "Ontem 14:30",
-        },
-        {
-          id: 3,
-          from: "Carlos Eletricista",
-          text: "Pagamento pendente da semana passada.",
-          time: "Ontem 16:00",
-        },
-      ],
-      proposal: null,
-    },
-    {
-      id: 4,
-      name: "Maria Arquiteta",
-      type: "worker",
-      lastMessage: "Enviei as novas plantas do projeto.",
-      time: "Ontem",
-      unread: 0,
-      online: true,
-      avatar: "MA",
-      email: "maria@arquiteta.com",
-      phone: "(31) 99999-3333",
-      rating: 4.9,
-      messages: [
-        {
-          id: 1,
-          from: "Maria Arquiteta",
-          text: "Estou finalizando as novas plantas.",
-          time: "Ontem 09:00",
-        },
-        {
-          id: 2,
-          from: "Maria Arquiteta",
-          text: "Enviei as novas plantas do projeto.",
-          time: "Ontem 17:00",
-        },
-      ],
-      proposal: null,
-    },
-    {
-      id: 5,
-      name: "Fundo Imobiliário Alpha",
-      type: "investor",
-      lastMessage: "Gostaríamos de fazer uma contraproposta.",
-      time: "Segunda",
-      unread: 1,
-      online: false,
-      avatar: "FI",
-      email: "alpha@fundo.com",
-      invested: 100000,
-      projects: 5,
-      status: "active",
-      messages: [
-        {
-          id: 1,
-          from: "Fundo Imobiliário Alpha",
-          text: "Recebemos sua proposta de investimento.",
-          time: "Segunda 10:00",
-        },
-        {
-          id: 2,
-          from: "Você",
-          text: "Ótimo! Aguardo retorno.",
-          time: "Segunda 10:30",
-        },
-        {
-          id: 3,
-          from: "Fundo Imobiliário Alpha",
-          text: "Gostaríamos de fazer uma contraproposta.",
-          time: "Segunda 14:00",
-        },
-      ],
-      proposal: {
-        value: 80000,
-        return: 10,
-        term: 18,
-        status: "negotiating",
-      },
-    },
-  ];
-
-  // Filtros
-  const [filterType, setFilterType] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [chats, setChats] = useState(initialChats);
-  const [selectedChat, setSelectedChat] = useState(initialChats[0]);
+  const {
+    conversations,
+    isLoading: conversationsLoading,
+    error: conversationsError,
+  } = useConversations();
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [newMessage, setNewMessage] = useState("");
-  const [showProposal, setShowProposal] = useState(false);
-  const [showAttachment, setShowAttachment] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
   const [showContactInfo, setShowContactInfo] = useState(false);
+  const [showProposal, setShowProposal] = useState(false);
 
   const messagesEndRef = useRef(null);
 
-  // Scroll para o final ao carregar/atualizar mensagens
+  // Buscar mensagens da conversa selecionada
+  const {
+    messages,
+    isLoading: messagesLoading,
+    error: messagesError,
+    sendMessage,
+  } = useMessages(selectedConversation?.id);
+
+  // Scroll para o final ao carregar mensagens
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [selectedChat]);
+  }, [messages]);
+
+  // Selecionar primeira conversa automaticamente
+  useEffect(() => {
+    if (conversations && conversations.length > 0 && !selectedConversation) {
+      setSelectedConversation(conversations[0]);
+    }
+  }, [conversations, selectedConversation]);
 
   // Filtrar conversas
-  const filteredChats = chats.filter((chat) => {
-    if (filterType !== "all" && chat.type !== filterType) return false;
-    if (
-      searchTerm &&
-      !chat.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-      return false;
-    return true;
-  });
+  const filteredConversations = useMemo(() => {
+    if (!conversations) return [];
+    return conversations.filter((chat) => {
+      if (filterType !== "all" && chat.type !== filterType) return false;
+      if (
+        searchTerm &&
+        !chat.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+        return false;
+      return true;
+    });
+  }, [conversations, filterType, searchTerm]);
 
-  // Enviar mensagem
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedChat) return;
-    const updatedChat = {
-      ...selectedChat,
-      messages: [
-        ...selectedChat.messages,
-        {
-          id: Date.now(),
-          from: "Você",
-          text: newMessage,
-          time: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        },
-      ],
-      lastMessage: newMessage,
-      time: "Agora",
-    };
-    setChats(chats.map((c) => (c.id === selectedChat.id ? updatedChat : c)));
-    setSelectedChat(updatedChat);
-    setNewMessage("");
-  };
-
-  // Atualizar status de propostas
-  const handleProposalAction = (action) => {
-    if (!selectedChat || !selectedChat.proposal) return;
-    const updatedProposal = { ...selectedChat.proposal, status: action };
-    const updatedChat = { ...selectedChat, proposal: updatedProposal };
-    setChats(chats.map((c) => (c.id === selectedChat.id ? updatedChat : c)));
-    setSelectedChat(updatedChat);
-    setShowProposal(false);
-  };
+  // Estatísticas
+  const totalChats = conversations?.length || 0;
+  const unreadCount =
+    conversations?.reduce((sum, c) => {
+      const unread =
+        c.messages?.filter((m) => !m.is_read && m.user_id !== c.user_id)
+          .length || 0;
+      return sum + unread;
+    }, 0) || 0;
+  const investorCount =
+    conversations?.filter((c) => c.type === "investor").length || 0;
+  const supplierCount =
+    conversations?.filter((c) => c.type === "supplier").length || 0;
 
   // Cores por tipo
   const typeColors = {
     investor: "text-blue-600 bg-blue-100",
     supplier: "text-green-600 bg-green-100",
     worker: "text-orange-600 bg-orange-100",
+    default: "text-gray-600 bg-gray-100",
   };
 
   const typeLabels = {
     investor: "Investidor",
     supplier: "Fornecedor",
     worker: "Funcionário",
+    default: "Contato",
   };
 
-  // Estatísticas
-  const totalChats = chats.length;
-  const unreadCount = chats.reduce((sum, c) => sum + c.unread, 0);
-  const investorCount = chats.filter((c) => c.type === "investor").length;
-  const supplierCount = chats.filter((c) => c.type === "supplier").length;
+  // Enviar mensagem
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+    sendMessage.mutate({
+      conversationId: selectedConversation.id,
+      content: newMessage,
+    });
+    setNewMessage("");
+  };
+
+  // Marcar mensagens como lidas ao abrir conversa
+  useEffect(() => {
+    if (!selectedConversation) return;
+    // Marcar todas as mensagens como lidas (opcional)
+  }, [selectedConversation]);
+
+  // Estado de loading combinado
+  const isLoading = conversationsLoading || messagesLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
+          <p className="mt-4 text-gray-500">Carregando mensagens...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const error = conversationsError || messagesError;
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center max-w-md p-8 bg-white rounded-xl shadow-lg">
+          <span className="material-symbols-outlined text-6xl text-red-400 block">
+            error
+          </span>
+          <p className="text-xl font-semibold text-red-600 mt-4">
+            Erro ao carregar mensagens
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            {error.message || "Ocorreu um erro inesperado."}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
@@ -320,18 +173,6 @@ export function Messages() {
           border: 1px solid rgba(41, 128, 185, 0.25);
           box-shadow: 0 0 16px rgba(41, 128, 185, 0.1);
         }
-        .badge-glow-secondary {
-          background: rgba(52, 152, 219, 0.12);
-          color: #3498DB;
-          border: 1px solid rgba(52, 152, 219, 0.25);
-          box-shadow: 0 0 16px rgba(52, 152, 219, 0.1);
-        }
-        .badge-glow-success {
-          background: rgba(34, 197, 94, 0.12);
-          color: #22c55e;
-          border: 1px solid rgba(34, 197, 94, 0.25);
-          box-shadow: 0 0 16px rgba(34, 197, 94, 0.1);
-        }
         .btn-primary-glow {
           transition: all 0.25s ease;
         }
@@ -367,6 +208,10 @@ export function Messages() {
         }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .modal-overlay {
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(4px);
+        }
         .proposal-card {
           background: linear-gradient(135deg, rgba(41, 128, 185, 0.05), rgba(52, 152, 219, 0.05));
           border: 1px solid rgba(41, 128, 185, 0.2);
@@ -481,7 +326,7 @@ export function Messages() {
 
             {/* Lista */}
             <div className="flex-1 overflow-y-auto scrollbar-hide">
-              {filteredChats.length === 0 ? (
+              {filteredConversations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
                   <span className="material-symbols-outlined text-4xl text-gray-300">
                     chat_bubble_outline
@@ -489,73 +334,91 @@ export function Messages() {
                   <p className="text-sm text-gray-500 mt-2">
                     Nenhuma conversa encontrada
                   </p>
+                  <button className="mt-4 text-blue-600 hover:underline text-sm">
+                    Iniciar nova conversa
+                  </button>
                 </div>
               ) : (
-                filteredChats.map((chat) => (
-                  <div
-                    key={chat.id}
-                    onClick={() => {
-                      // Marcar como lida
-                      const updated = { ...chat, unread: 0 };
-                      setChats(
-                        chats.map((c) => (c.id === chat.id ? updated : c)),
-                      );
-                      setSelectedChat(updated);
-                    }}
-                    className={`flex items-center gap-3 p-3 cursor-pointer transition hover:bg-white/50 border-b border-gray-100/50 ${selectedChat?.id === chat.id ? "bg-white/60" : ""}`}
-                  >
-                    <div className="relative flex-shrink-0">
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[chat.type]}`}
-                      >
-                        {chat.avatar}
+                filteredConversations.map((chat) => {
+                  const lastMessage = chat.messages?.[chat.messages.length - 1];
+                  const unreadCount =
+                    chat.messages?.filter(
+                      (m) => !m.is_read && m.user_id !== chat.user_id,
+                    ).length || 0;
+
+                  return (
+                    <div
+                      key={chat.id}
+                      onClick={() => {
+                        setSelectedConversation(chat);
+                        // Marcar como lida (seria feito via mutation)
+                      }}
+                      className={`flex items-center gap-3 p-3 cursor-pointer transition hover:bg-white/50 border-b border-gray-100/50 ${selectedConversation?.id === chat.id ? "bg-white/60" : ""}`}
+                    >
+                      <div className="relative flex-shrink-0">
+                        <div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[chat.type] || typeColors.default}`}
+                        >
+                          {chat.avatar || chat.name?.charAt(0) || "?"}
+                        </div>
+                        {chat.online && (
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white online-dot"></div>
+                        )}
                       </div>
-                      {chat.online && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white online-dot"></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <p className="font-semibold text-sm text-gray-800 truncate">
+                            {chat.name}
+                          </p>
+                          <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
+                            {lastMessage
+                              ? new Date(
+                                  lastMessage.created_at,
+                                ).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : ""}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate">
+                          {lastMessage?.content || "Nenhuma mensagem"}
+                        </p>
+                      </div>
+                      {unreadCount > 0 && (
+                        <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                          {unreadCount}
+                        </span>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <p className="font-semibold text-sm text-gray-800 truncate">
-                          {chat.name}
-                        </p>
-                        <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
-                          {chat.time}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 truncate">
-                        {chat.lastMessage}
-                      </p>
-                    </div>
-                    {chat.unread > 0 && (
-                      <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
-                        {chat.unread}
-                      </span>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
 
           {/* Área do Chat */}
-          {selectedChat ? (
+          {selectedConversation ? (
             <div className="flex-1 flex flex-col bg-white/20 backdrop-blur-sm">
               {/* Header do Chat */}
               <div className="flex items-center justify-between p-3 border-b border-gray-200/50 bg-white/30">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[selectedChat.type]}`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[selectedConversation.type] || typeColors.default}`}
                   >
-                    {selectedChat.avatar}
+                    {selectedConversation.avatar ||
+                      selectedConversation.name?.charAt(0) ||
+                      "?"}
                   </div>
                   <div>
                     <p className="font-semibold text-sm text-gray-800">
-                      {selectedChat.name}
+                      {selectedConversation.name}
                     </p>
                     <p className="text-[10px] text-gray-500">
-                      {selectedChat.online ? "🟢 Online" : "🔴 Offline"} •{" "}
-                      {typeLabels[selectedChat.type]}
+                      {selectedConversation.online ? "🟢 Online" : "🔴 Offline"}{" "}
+                      •{" "}
+                      {typeLabels[selectedConversation.type] ||
+                        typeLabels.default}
                     </p>
                   </div>
                 </div>
@@ -590,105 +453,43 @@ export function Messages() {
 
               {/* Mensagens */}
               <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
-                {selectedChat.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.from === "Você" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`message-bubble rounded-2xl px-4 py-2 text-sm ${
-                        msg.from === "Você"
-                          ? "bg-blue-600 text-white rounded-br-none"
-                          : "bg-white/80 text-gray-800 rounded-bl-none shadow-sm"
-                      }`}
-                    >
-                      <p>{msg.text}</p>
-                      <span
-                        className={`text-[10px] mt-1 block ${msg.from === "Você" ? "text-blue-200" : "text-gray-400"}`}
-                      >
-                        {msg.time}
-                      </span>
-                    </div>
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                    Nenhuma mensagem ainda. Envie a primeira mensagem!
                   </div>
-                ))}
-                {/* Proposta de investimento (se existir) */}
-                {selectedChat.proposal && (
-                  <div className="flex justify-center my-2">
-                    <div className="proposal-card rounded-xl p-4 max-w-md w-full">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="material-symbols-outlined text-blue-600">
-                          description
-                        </span>
-                        <span className="font-semibold text-sm text-gray-800">
-                          Proposta de Investimento
-                        </span>
-                        <span
-                          className={`text-[9px] px-2 py-0.5 rounded-full ${
-                            selectedChat.proposal.status === "pending"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : selectedChat.proposal.status === "approved"
-                                ? "bg-green-100 text-green-700"
-                                : selectedChat.proposal.status === "rejected"
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-blue-100 text-blue-700"
+                ) : (
+                  messages.map((msg) => {
+                    const isOwn = msg.user_id === selectedConversation.user_id;
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`message-bubble rounded-2xl px-4 py-2 text-sm ${
+                            isOwn
+                              ? "bg-blue-600 text-white rounded-br-none"
+                              : "bg-white/80 text-gray-800 rounded-bl-none shadow-sm"
                           }`}
                         >
-                          {selectedChat.proposal.status === "pending"
-                            ? "⏳ Pendente"
-                            : selectedChat.proposal.status === "approved"
-                              ? "✅ Aprovado"
-                              : selectedChat.proposal.status === "rejected"
-                                ? "❌ Recusado"
-                                : "🔄 Negociando"}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div className="bg-white/50 rounded p-2 text-center">
-                          <p className="text-gray-500">Valor</p>
-                          <p className="font-bold text-blue-600">
-                            R$ {selectedChat.proposal.value.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="bg-white/50 rounded p-2 text-center">
-                          <p className="text-gray-500">Retorno</p>
-                          <p className="font-bold text-green-600">
-                            {selectedChat.proposal.return}%
-                          </p>
-                        </div>
-                        <div className="bg-white/50 rounded p-2 text-center">
-                          <p className="text-gray-500">Prazo</p>
-                          <p className="font-bold text-gray-800">
-                            {selectedChat.proposal.term} meses
-                          </p>
+                          <p>{msg.content}</p>
+                          <span
+                            className={`text-[10px] mt-1 block ${isOwn ? "text-blue-200" : "text-gray-400"}`}
+                          >
+                            {new Date(msg.created_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
                         </div>
                       </div>
-                      {selectedChat.proposal.status === "pending" && (
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={() => handleProposalAction("approved")}
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1.5 rounded-lg text-xs font-medium"
-                          >
-                            ✅ Aceitar
-                          </button>
-                          <button
-                            onClick={() => handleProposalAction("rejected")}
-                            className="flex-1 bg-red-500 hover:bg-red-600 text-white py-1.5 rounded-lg text-xs font-medium"
-                          >
-                            ❌ Recusar
-                          </button>
-                          <button
-                            onClick={() => handleProposalAction("negotiating")}
-                            className="flex-1 border border-blue-600 text-blue-600 hover:bg-blue-50 py-1.5 rounded-lg text-xs font-medium"
-                          >
-                            ✏ Negociar
-                          </button>
-                        </div>
-                      )}
-                      {selectedChat.proposal.status === "negotiating" && (
-                        <div className="mt-2 text-center text-xs text-blue-600">
-                          🔄 Em negociação - aguardando resposta
-                        </div>
-                      )}
+                    );
+                  })
+                )}
+                {sendMessage.isLoading && (
+                  <div className="flex justify-end">
+                    <div className="bg-gray-300 text-gray-500 rounded-2xl px-4 py-2 text-sm rounded-br-none animate-pulse">
+                      Enviando...
                     </div>
                   </div>
                 )}
@@ -699,7 +500,6 @@ export function Messages() {
               <div className="p-3 border-t border-gray-200/50 bg-white/30">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setShowAttachment(!showAttachment)}
                     className="p-2 rounded-lg hover:bg-gray-100 transition"
                     title="Anexar arquivo"
                   >
@@ -715,7 +515,7 @@ export function Messages() {
                       emoji_emotions
                     </span>
                   </button>
-                  {selectedChat.type === "investor" && (
+                  {selectedConversation.type === "investor" && (
                     <button
                       onClick={() => setShowProposal(!showProposal)}
                       className="p-2 rounded-lg hover:bg-blue-50 transition"
@@ -736,7 +536,8 @@ export function Messages() {
                   />
                   <button
                     onClick={handleSendMessage}
-                    className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg"
+                    disabled={!newMessage.trim() || sendMessage.isLoading}
+                    className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Enviar mensagem"
                   >
                     <span className="material-symbols-outlined text-sm">
@@ -744,28 +545,6 @@ export function Messages() {
                     </span>
                   </button>
                 </div>
-                {/* Anexos rápidos */}
-                {showAttachment &&
-                  selectedChat.files &&
-                  selectedChat.files.length > 0 && (
-                    <div className="flex gap-2 mt-2 overflow-x-auto scrollbar-hide">
-                      {selectedChat.files.map((file, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-1 bg-white/80 rounded-lg px-2 py-1 text-xs border border-gray-200"
-                        >
-                          <span className="material-symbols-outlined text-sm text-blue-600">
-                            description
-                          </span>
-                          <span className="text-gray-700">{file.name}</span>
-                          <span className="text-gray-400">({file.size})</span>
-                          <button className="text-blue-600 hover:underline">
-                            📥
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
               </div>
             </div>
           ) : (
@@ -785,7 +564,7 @@ export function Messages() {
       </div>
 
       {/* Modal de Proposta (para investidores) */}
-      {showProposal && selectedChat && (
+      {showProposal && selectedConversation && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center modal-overlay"
           onClick={() => setShowProposal(false)}
@@ -863,7 +642,7 @@ export function Messages() {
       )}
 
       {/* Painel lateral: Informações do Contato */}
-      {showContactInfo && selectedChat && (
+      {showContactInfo && selectedConversation && (
         <div
           className="fixed inset-0 z-50 flex justify-end modal-overlay"
           onClick={() => setShowContactInfo(false)}
@@ -884,18 +663,20 @@ export function Messages() {
 
             <div className="flex flex-col items-center text-center">
               <div
-                className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-xl ${typeColors[selectedChat.type]}`}
+                className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-xl ${typeColors[selectedConversation.type] || typeColors.default}`}
               >
-                {selectedChat.avatar}
+                {selectedConversation.avatar ||
+                  selectedConversation.name?.charAt(0) ||
+                  "?"}
               </div>
               <h4 className="text-lg font-bold text-gray-800 mt-3">
-                {selectedChat.name}
+                {selectedConversation.name}
               </h4>
               <p className="text-sm text-gray-500">
-                {typeLabels[selectedChat.type]}
+                {typeLabels[selectedConversation.type] || typeLabels.default}
               </p>
               <div className="flex items-center gap-1 mt-1">
-                {selectedChat.online ? (
+                {selectedConversation.online ? (
                   <span className="text-xs text-green-600 flex items-center gap-1">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>{" "}
                     Online
@@ -912,30 +693,24 @@ export function Messages() {
                 <div className="mt-2 space-y-1 text-sm">
                   <p>
                     <span className="text-gray-500">Email:</span>{" "}
-                    {selectedChat.email}
+                    {selectedConversation.email || "Não informado"}
                   </p>
-                  {selectedChat.phone && (
+                  {selectedConversation.phone && (
                     <p>
                       <span className="text-gray-500">Telefone:</span>{" "}
-                      {selectedChat.phone}
+                      {selectedConversation.phone}
                     </p>
                   )}
-                  {selectedChat.rating && (
+                  {selectedConversation.rating && (
                     <p>
                       <span className="text-gray-500">Avaliação:</span> ⭐{" "}
-                      {selectedChat.rating} / 5
-                    </p>
-                  )}
-                  {selectedChat.distance && (
-                    <p>
-                      <span className="text-gray-500">Distância:</span>{" "}
-                      {selectedChat.distance}
+                      {selectedConversation.rating} / 5
                     </p>
                   )}
                 </div>
               </div>
 
-              {selectedChat.type === "investor" && (
+              {selectedConversation.type === "investor" && (
                 <div className="border-b border-gray-200 pb-3">
                   <h5 className="font-semibold text-gray-700 text-sm">
                     Investimentos
@@ -943,56 +718,15 @@ export function Messages() {
                   <div className="mt-2 space-y-1 text-sm">
                     <p>
                       <span className="text-gray-500">Total investido:</span> R${" "}
-                      {selectedChat.invested?.toLocaleString()}
+                      {selectedConversation.invested?.toLocaleString() || "0"}
                     </p>
                     <p>
                       <span className="text-gray-500">Projetos:</span>{" "}
-                      {selectedChat.projects}
+                      {selectedConversation.projects || 0}
                     </p>
                     <p>
                       <span className="text-gray-500">Status:</span>{" "}
                       <span className="text-green-600">Ativo</span>
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {selectedChat.type === "supplier" && (
-                <div className="border-b border-gray-200 pb-3">
-                  <h5 className="font-semibold text-gray-700 text-sm">
-                    Fornecedor
-                  </h5>
-                  <div className="mt-2 space-y-1 text-sm">
-                    <p>
-                      <span className="text-gray-500">
-                        Materiais fornecidos:
-                      </span>{" "}
-                      12 itens
-                    </p>
-                    <p>
-                      <span className="text-gray-500">Última compra:</span>{" "}
-                      10/06/2026
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {selectedChat.type === "worker" && (
-                <div className="border-b border-gray-200 pb-3">
-                  <h5 className="font-semibold text-gray-700 text-sm">
-                    Funcionário
-                  </h5>
-                  <div className="mt-2 space-y-1 text-sm">
-                    <p>
-                      <span className="text-gray-500">Cargo:</span>{" "}
-                      {selectedChat.role || "Técnico"}
-                    </p>
-                    <p>
-                      <span className="text-gray-500">Projetos ativos:</span> 2
-                    </p>
-                    <p>
-                      <span className="text-gray-500">Último pagamento:</span>{" "}
-                      15/06/2026
                     </p>
                   </div>
                 </div>
