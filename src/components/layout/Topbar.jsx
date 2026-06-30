@@ -2,11 +2,6 @@ import { useLocation } from "react-router-dom";
 import { Logo } from "./ui/Logo";
 
 export function Topbar() {
-  <header className="flex items-center justify-between px-6 py-3 bg-white border-b">
-    <Logo className="h-8" />
-    {/* Restante do header */}
-  </header>;
-
   const location = useLocation();
 
   const titleMap = {

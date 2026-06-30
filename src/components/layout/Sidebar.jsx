@@ -2,14 +2,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "./ui/Logo";
 
 export function Sidebar() {
-  <div className="flex items-center gap-2 px-4 py-3 border-b">
-    <Logo variant="icon" className="h-8 w-8" />
-    <span className="font-bold text-lg text-white">
-      <span className="text-gray-300">espes</span>
-      <span className="text-[#4bc9c4]">ify</span>
-    </span>
-  </div>;
-
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -61,9 +53,7 @@ export function Sidebar() {
       {/* Brand logo & active user profile */}
       <div className="px-lateral_padding mb-6 flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-title text-title shadow-sm">
-            D
-          </div>
+          <Logo variant="icon" className="w-10 h-10 shadow-sm" imgClassName="w-10 h-10" />
           <div>
             <h1 className="font-title text-title text-on-secondary text-lg leading-tight">
               Despesify 2

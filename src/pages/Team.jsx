@@ -1,155 +1,67 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { useEmployees } from "../hooks/useEmployees";
 
 export function Team() {
-  // Dados mockados da equipe
-  const initialMembers = [
-    {
-      id: 1,
-      name: "João Silva",
-      role: "Pedreiro",
-      category: "Construção",
-      salary: 2500,
-      startDate: "2026-06-10",
-      phone: "(31) 99999-9999",
-      email: "joao@email.com",
-      status: "paid", // paid | pending | overdue
-      lastPayment: "2026-06-15",
-      nextPayment: "2026-07-15",
-      rating: 4.8,
-      tasksCompleted: 35,
-      tasksInProgress: 4,
-      efficiency: 92,
-      projects: ["Reforma da Casa", "Ampliação da Empresa"],
-      type: "employee", // employee | contractor | investor | admin
-    },
-    {
-      id: 2,
-      name: "Carlos Souza",
-      role: "Eletricista",
-      category: "Construção",
-      salary: 2200,
-      startDate: "2026-05-20",
-      phone: "(31) 98888-8888",
-      email: "carlos@email.com",
-      status: "pending",
-      lastPayment: "2026-05-20",
-      nextPayment: "2026-06-20",
-      rating: 4.5,
-      tasksCompleted: 28,
-      tasksInProgress: 6,
-      efficiency: 85,
-      projects: ["Ampliação da Empresa", "Loft Distrito Histórico"],
-      type: "contractor",
-    },
-    {
-      id: 3,
-      name: "Maria Oliveira",
-      role: "Arquiteta",
-      category: "Administrativo",
-      salary: 4500,
-      startDate: "2026-04-01",
-      phone: "(31) 97777-7777",
-      email: "maria@email.com",
-      status: "paid",
-      lastPayment: "2026-06-01",
-      nextPayment: "2026-07-01",
-      rating: 4.9,
-      tasksCompleted: 42,
-      tasksInProgress: 2,
-      efficiency: 95,
-      projects: [
-        "Reforma da Casa",
-        "Loft Distrito Histórico",
-        "Cobertura Duplex",
-      ],
-      type: "employee",
-    },
-    {
-      id: 4,
-      name: "Pedro Santos",
-      role: "Encanador",
-      category: "Construção",
-      salary: 2000,
-      startDate: "2026-06-05",
-      phone: "(31) 96666-6666",
-      email: "pedro@email.com",
-      status: "pending",
-      lastPayment: "2026-06-05",
-      nextPayment: "2026-07-05",
-      rating: 4.2,
-      tasksCompleted: 15,
-      tasksInProgress: 8,
-      efficiency: 78,
-      projects: ["Reforma da Casa"],
-      type: "contractor",
-    },
-    {
-      id: 5,
-      name: "Ana Costa",
-      role: "Mestre de Obras",
-      category: "Construção",
-      salary: 3200,
-      startDate: "2026-03-15",
-      phone: "(31) 95555-5555",
-      email: "ana@email.com",
-      status: "paid",
-      lastPayment: "2026-06-15",
-      nextPayment: "2026-07-15",
-      rating: 4.7,
-      tasksCompleted: 50,
-      tasksInProgress: 5,
-      efficiency: 90,
-      projects: ["Ampliação da Empresa", "Cobertura Duplex"],
-      type: "employee",
-    },
-    {
-      id: 6,
-      name: "Roberto Lima",
-      role: "Pintor",
-      category: "Construção",
-      salary: 1800,
-      startDate: "2026-06-12",
-      phone: "(31) 94444-4444",
-      email: "roberto@email.com",
-      status: "overdue",
-      lastPayment: "2026-05-12",
-      nextPayment: "2026-06-12",
-      rating: 4.0,
-      tasksCompleted: 10,
-      tasksInProgress: 3,
-      efficiency: 70,
-      projects: ["Reforma da Casa"],
-      type: "contractor",
-    },
-  ];
+  // Dados reais do Supabase
+  const {
+    employees,
+    isLoading,
+    error,
+    createEmployee,
+    updateEmployee,
+    payEmployee,
+    deleteEmployee,
+  } = useEmployees();
 
-  // Estados
-  const [members, setMembers] = useState(initialMembers);
+  // Estados para filtros e busca
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("Todos");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [selectedMember, setSelectedMember] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
 
-  // Obter funções únicas para o filtro
-  const roles = ["Todos", ...new Set(members.map((m) => m.role))];
-
-  // Aplicar filtros
-  const filteredMembers = members.filter((m) => {
-    if (searchTerm && !m.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      return false;
-    if (roleFilter !== "Todos" && m.role !== roleFilter) return false;
-    if (statusFilter !== "Todos" && m.status !== statusFilter) return false;
-    return true;
+  // Estado do formulário de adição/edição
+  const [formData, setFormData] = useState({
+    name: "",
+    role: "",
+    category: "Construção",
+    salary: "",
+    startDate: "",
+    phone: "",
+    email: "",
+    type: "employee",
   });
 
-  // Estatísticas
-  const totalMembers = members.length;
-  const paidCount = members.filter((m) => m.status === "paid").length;
-  const pendingCount = members.filter((m) => m.status === "pending").length;
-  const overdueCount = members.filter((m) => m.status === "overdue").length;
-  const totalPayroll = members.reduce((sum, m) => sum + m.salary, 0);
+  // Obter funções únicas para o filtro
+  const roles = useMemo(() => {
+    if (!employees) return ["Todos"];
+    return ["Todos", ...new Set(employees.map((m) => m.role).filter(Boolean))];
+  }, [employees]);
+
+  // Aplicar filtros
+  const filteredMembers = useMemo(() => {
+    if (!employees) return [];
+    return employees.filter((m) => {
+      if (searchTerm && !m.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+        return false;
+      if (roleFilter !== "Todos" && m.role !== roleFilter) return false;
+      if (statusFilter !== "Todos" && m.status !== statusFilter) return false;
+      return true;
+    });
+  }, [employees, searchTerm, roleFilter, statusFilter]);
+
+  // Estatísticas calculadas a partir dos dados reais
+  const stats = useMemo(() => {
+    if (!employees) return { total: 0, paid: 0, pending: 0, overdue: 0, payroll: 0 };
+    const total = employees.length;
+    const paid = employees.filter((m) => m.status === "paid").length;
+    const pending = employees.filter((m) => m.status === "pending").length;
+    const overdue = employees.filter((m) => m.status === "overdue").length;
+    const payroll = employees.reduce((sum, m) => sum + (m.salary || 0), 0);
+    return { total, paid, pending, overdue, payroll };
+  }, [employees]);
 
   // Status labels
   const statusLabels = {
@@ -158,10 +70,110 @@ export function Team() {
     overdue: { label: "Atrasado", color: "bg-red-100 text-red-700" },
   };
 
-  // Modal para adicionar membro (mock)
+  // Abrir modal para adicionar
   const handleAddMember = () => {
+    setEditingMember(null);
+    setFormData({
+      name: "",
+      role: "",
+      category: "Construção",
+      salary: "",
+      startDate: new Date().toISOString().split("T")[0],
+      phone: "",
+      email: "",
+      type: "employee",
+    });
     setShowModal(true);
   };
+
+  // Abrir modal para editar
+  const handleEditMember = (member) => {
+    setEditingMember(member);
+    setFormData({
+      name: member.name || "",
+      role: member.role || "",
+      category: member.category || "Construção",
+      salary: member.salary?.toString() || "",
+      startDate: member.start_date || new Date().toISOString().split("T")[0],
+      phone: member.phone || "",
+      email: member.email || "",
+      type: member.type || "employee",
+    });
+    setShowModal(true);
+  };
+
+  // Salvar (criar ou atualizar)
+  const handleSaveMember = async () => {
+    const payload = {
+      name: formData.name,
+      role: formData.role,
+      category: formData.category,
+      salary: parseFloat(formData.salary) || 0,
+      start_date: formData.startDate,
+      phone: formData.phone,
+      email: formData.email,
+      type: formData.type,
+      status: "pending",
+    };
+
+    if (editingMember) {
+      await updateEmployee.mutateAsync({ id: editingMember.id, ...payload });
+    } else {
+      await createEmployee.mutateAsync(payload);
+    }
+    setShowModal(false);
+    setEditingMember(null);
+  };
+
+  // Pagar funcionário
+  const handlePayMember = async (member) => {
+    if (window.confirm(`Confirmar pagamento para ${member.name}?`)) {
+      await payEmployee.mutateAsync({
+        id: member.id,
+        lastPayment: new Date().toISOString(),
+        nextPayment: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+  };
+
+  // Excluir funcionário
+  const handleDeleteMember = async (id) => {
+    if (window.confirm("Tem certeza que deseja excluir este membro?")) {
+      await deleteEmployee.mutateAsync(id);
+      setShowProfile(false);
+    }
+  };
+
+  // Loading
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
+          <p className="mt-4 text-gray-500">Carregando equipe...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center max-w-md p-8 bg-white rounded-xl shadow-lg">
+          <span className="material-symbols-outlined text-6xl text-red-400 block">error</span>
+          <p className="text-xl font-semibold text-red-600 mt-4">Erro ao carregar equipe</p>
+          <p className="text-sm text-gray-500 mt-2">{error.message}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -177,7 +189,6 @@ export function Team() {
         .glass-card {
           background: rgba(255, 255, 255, 0.75);
           backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
           border: 1px solid rgba(255, 255, 255, 0.4);
           box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
           transition: all 0.3s ease;
@@ -209,9 +220,6 @@ export function Team() {
           filter: drop-shadow(0 0 8px rgba(41, 128, 185, 0.15));
           transition: filter 0.3s ease;
         }
-        .icon-glow:hover {
-          filter: drop-shadow(0 0 16px rgba(41, 128, 185, 0.3));
-        }
         .number-glow {
           text-shadow: 0 0 20px rgba(41, 128, 185, 0.15);
         }
@@ -223,24 +231,15 @@ export function Team() {
           background: rgba(255, 255, 255, 0.95);
           backdrop-filter: blur(8px);
         }
-        .star-filled {
-          color: #f59e0b;
-        }
-        .star-empty {
-          color: #d1d5db;
-        }
+        .star-filled { color: #f59e0b; }
+        .star-empty { color: #d1d5db; }
       `}</style>
 
       {/* Cabeçalho */}
-      <div
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 animate-fade-up"
-        style={{ animationDelay: "0.05s" }}
-      >
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 animate-fade-up" style={{ animationDelay: "0.05s" }}>
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Equipe</h1>
-          <p className="text-sm text-gray-500">
-            Gerencie toda a mão de obra dos seus projetos.
-          </p>
+          <p className="text-sm text-gray-500">Gerencie toda a mão de obra dos seus projetos.</p>
         </div>
         <button
           onClick={handleAddMember}
@@ -251,55 +250,43 @@ export function Team() {
         </button>
       </div>
 
-      {/* Cards de resumo */}
-      <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-fade-up"
-        style={{ animationDelay: "0.10s" }}
-      >
+      {/* Cards de resumo (com dados reais) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-fade-up" style={{ animationDelay: "0.10s" }}>
         <div className="glass-card rounded-xl p-4 hover-lift">
           <p className="text-xs text-gray-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">groups</span>
             Total de Membros
           </p>
-          <p className="text-xl font-bold text-gray-800">{totalMembers}</p>
+          <p className="text-xl font-bold text-gray-800">{stats.total}</p>
         </div>
         <div className="glass-card rounded-xl p-4 hover-lift">
           <p className="text-xs text-gray-500 flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm">
-              check_circle
-            </span>
+            <span className="material-symbols-outlined text-sm">check_circle</span>
             Pagos
           </p>
-          <p className="text-xl font-bold text-green-600">{paidCount}</p>
+          <p className="text-xl font-bold text-green-600">{stats.paid}</p>
         </div>
         <div className="glass-card rounded-xl p-4 hover-lift">
           <p className="text-xs text-gray-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">pending</span>
             Pendentes
           </p>
-          <p className="text-xl font-bold text-orange-500">{pendingCount}</p>
+          <p className="text-xl font-bold text-orange-500">{stats.pending}</p>
         </div>
         <div className="glass-card rounded-xl p-4 hover-lift">
           <p className="text-xs text-gray-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">payments</span>
             Folha Mensal
           </p>
-          <p className="text-xl font-bold text-blue-600">
-            R$ {totalPayroll.toLocaleString()}
-          </p>
+          <p className="text-xl font-bold text-blue-600">R$ {stats.payroll.toLocaleString()}</p>
         </div>
       </div>
 
       {/* Busca e Filtros */}
-      <div
-        className="flex flex-wrap items-center gap-3 mb-6 animate-fade-up"
-        style={{ animationDelay: "0.15s" }}
-      >
+      <div className="flex flex-wrap items-center gap-3 mb-6 animate-fade-up" style={{ animationDelay: "0.15s" }}>
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-              search
-            </span>
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
             <input
               type="text"
               placeholder="Pesquisar funcionário..."
@@ -316,9 +303,7 @@ export function Team() {
           className="px-3 py-2 border border-gray-300 rounded-lg bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
         >
           {roles.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
+            <option key={role} value={role}>{role}</option>
           ))}
         </select>
 
@@ -349,22 +334,15 @@ export function Team() {
 
       {/* Contador de resultados */}
       <p className="text-sm text-gray-500 mb-4">
-        {filteredMembers.length} membro{filteredMembers.length !== 1 ? "s" : ""}{" "}
-        encontrado{filteredMembers.length !== 1 ? "s" : ""}
+        {filteredMembers.length} membro{filteredMembers.length !== 1 ? "s" : ""} encontrado{filteredMembers.length !== 1 ? "s" : ""}
       </p>
 
       {/* Lista de Membros */}
       {filteredMembers.length === 0 ? (
         <div className="glass-card rounded-xl p-12 text-center">
-          <span className="material-symbols-outlined text-6xl text-gray-300">
-            search_off
-          </span>
-          <h3 className="text-xl font-semibold text-gray-600 mt-4">
-            Nenhum membro encontrado
-          </h3>
-          <p className="text-sm text-gray-500">
-            Tente ajustar os filtros ou adicionar um novo membro.
-          </p>
+          <span className="material-symbols-outlined text-6xl text-gray-300">search_off</span>
+          <h3 className="text-xl font-semibold text-gray-600 mt-4">Nenhum membro encontrado</h3>
+          <p className="text-sm text-gray-500">Tente ajustar os filtros ou adicionar um novo membro.</p>
         </div>
       ) : (
         <div className="grid lg:grid-cols-2 gap-6">
@@ -379,22 +357,15 @@ export function Team() {
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
-                      {member.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {member.name?.split(" ").map(n => n[0]).join("") || "?"}
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-800 text-lg">
-                        {member.name}
-                      </h3>
-                      <p className="text-sm text-gray-500">{member.role}</p>
+                      <h3 className="font-bold text-gray-800 text-lg">{member.name || "Sem nome"}</h3>
+                      <p className="text-sm text-gray-500">{member.role || "Sem cargo"}</p>
                     </div>
                   </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${statusLabels[member.status].color}`}
-                  >
-                    {statusLabels[member.status].label}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusLabels[member.status]?.color || "bg-gray-100 text-gray-600"}`}>
+                    {statusLabels[member.status]?.label || member.status || "Desconhecido"}
                   </span>
                 </div>
 
@@ -402,57 +373,55 @@ export function Team() {
                 <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-gray-500">💰 Salário</span>
-                    <p className="font-medium">
-                      R$ {member.salary.toLocaleString()}
-                    </p>
+                    <p className="font-medium">R$ {member.salary?.toLocaleString() || "0"}</p>
                   </div>
                   <div>
                     <span className="text-gray-500">📅 Início</span>
                     <p className="font-medium">
-                      {new Date(member.startDate).toLocaleDateString("pt-BR")}
+                      {member.start_date ? new Date(member.start_date).toLocaleDateString("pt-BR") : "N/A"}
                     </p>
                   </div>
                   <div>
                     <span className="text-gray-500">📱 Contato</span>
-                    <p className="font-medium">{member.phone}</p>
+                    <p className="font-medium">{member.phone || "N/A"}</p>
                   </div>
                   <div>
                     <span className="text-gray-500">📧 Email</span>
-                    <p className="font-medium truncate">{member.email}</p>
+                    <p className="font-medium truncate">{member.email || "N/A"}</p>
                   </div>
                 </div>
 
-                {/* Pagamentos */}
+                {/* Pagamentos (se existirem) */}
                 <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Último pagamento</span>
                     <span className="font-medium">
-                      {new Date(member.lastPayment).toLocaleDateString("pt-BR")}
+                      {member.last_payment ? new Date(member.last_payment).toLocaleDateString("pt-BR") : "N/A"}
                     </span>
                   </div>
                   <div className="flex justify-between mt-1">
                     <span className="text-gray-500">Próximo pagamento</span>
                     <span className="font-medium">
-                      {new Date(member.nextPayment).toLocaleDateString("pt-BR")}
+                      {member.next_payment ? new Date(member.next_payment).toLocaleDateString("pt-BR") : "N/A"}
                     </span>
                   </div>
                 </div>
 
-                {/* Avaliação e Produtividade */}
+                {/* Avaliação e Produtividade (mock - podem vir do banco depois) */}
                 <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
                   <div className="flex items-center gap-1">
                     <span className="text-gray-500">⭐</span>
-                    <span className="font-medium">{member.rating}</span>
+                    <span className="font-medium">{member.rating || "—"}</span>
                     <span className="text-gray-400">/ 5</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-500">✅</span>
-                    <span className="font-medium">{member.tasksCompleted}</span>
+                    <span className="font-medium">{member.tasks_completed || 0}</span>
                     <span className="text-gray-400">concluídas</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-500">📊</span>
-                    <span className="font-medium">{member.efficiency}%</span>
+                    <span className="font-medium">{member.efficiency || "—"}%</span>
                     <span className="text-gray-400">eficiência</span>
                   </div>
                 </div>
@@ -468,10 +437,16 @@ export function Team() {
                   >
                     Ver Perfil
                   </button>
-                  <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                  <button
+                    onClick={() => handleEditMember(member)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                  >
                     ✏️
                   </button>
-                  <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                  <button
+                    onClick={() => handlePayMember(member)}
+                    className="px-3 py-2 border border-green-300 rounded-lg hover:bg-green-50 text-sm text-green-600"
+                  >
                     💰
                   </button>
                 </div>
@@ -481,109 +456,114 @@ export function Team() {
         </div>
       )}
 
-      {/* Modal de Adicionar Membro */}
+      {/* Modal de Adicionar/Editar Membro */}
       {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center modal-overlay"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-gray-800">
-                Adicionar Membro
+                {editingMember ? "Editar Membro" : "Adicionar Membro"}
               </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSaveMember(); }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Nome
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Nome</label>
                 <input
                   type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="Nome completo"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Cargo
-                </label>
-                <select className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                  <option>Pedreiro</option>
-                  <option>Eletricista</option>
-                  <option>Encanador</option>
-                  <option>Pintor</option>
-                  <option>Mestre de Obras</option>
-                  <option>Arquiteto</option>
+                <label className="block text-sm font-medium text-gray-700">Cargo</label>
+                <input
+                  type="text"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Ex: Pedreiro"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Categoria</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option>Construção</option>
+                  <option>Elétrica</option>
+                  <option>Hidráulica</option>
+                  <option>Pintura</option>
                   <option>Administrativo</option>
-                  <option>Gerente</option>
+                  <option>Gerência</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Telefone
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Telefone</label>
                 <input
                   type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="(00) 00000-0000"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Email
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
                 <input
                   type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="email@exemplo.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Salário
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Salário (R$)</label>
                 <input
                   type="number"
+                  value={formData.salary}
+                  onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="0,00"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Data de Início
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Data de Início</label>
                 <input
                   type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Tipo
-                </label>
-                <select className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                  <option>Funcionário</option>
-                  <option>Prestador de Serviço</option>
-                  <option>Investidor</option>
-                  <option>Administrador</option>
+                <label className="block text-sm font-medium text-gray-700">Tipo</label>
+                <select
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="employee">Funcionário</option>
+                  <option value="contractor">Prestador de Serviço</option>
+                  <option value="investor">Investidor</option>
+                  <option value="admin">Administrador</option>
                 </select>
               </div>
               <button
-                type="button"
-                onClick={() => setShowModal(false)}
+                type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition"
               >
-                Adicionar
+                {editingMember ? "Salvar Alterações" : "Adicionar"}
               </button>
             </form>
           </div>
@@ -592,75 +572,46 @@ export function Team() {
 
       {/* Sidebar de Perfil do Membro */}
       {showProfile && selectedMember && (
-        <div
-          className="fixed inset-0 z-50 flex justify-end modal-overlay"
-          onClick={() => setShowProfile(false)}
-        >
-          <div
-            className="profile-sidebar w-full max-w-md h-full overflow-y-auto p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex justify-end modal-overlay" onClick={() => setShowProfile(false)}>
+          <div className="profile-sidebar w-full max-w-md h-full overflow-y-auto p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Cabeçalho do perfil */}
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl">
-                  {selectedMember.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                  {selectedMember.name?.split(" ").map(n => n[0]).join("") || "?"}
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">
-                    {selectedMember.name}
-                  </h2>
-                  <p className="text-sm text-gray-500">{selectedMember.role}</p>
+                  <h2 className="text-xl font-bold text-gray-800">{selectedMember.name || "Sem nome"}</h2>
+                  <p className="text-sm text-gray-500">{selectedMember.role || "Sem cargo"}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowProfile(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
+              <button onClick={() => setShowProfile(false)} className="text-gray-400 hover:text-gray-600">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
             {/* Status */}
-            <div
-              className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-4 ${statusLabels[selectedMember.status].color}`}
-            >
-              {statusLabels[selectedMember.status].label}
+            <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-4 ${statusLabels[selectedMember.status]?.color || "bg-gray-100 text-gray-600"}`}>
+              {statusLabels[selectedMember.status]?.label || selectedMember.status || "Desconhecido"}
             </div>
 
             {/* Informações */}
             <div className="space-y-4">
               <div className="border-b border-gray-200 pb-3">
-                <h4 className="font-semibold text-gray-700">
-                  Informações Pessoais
-                </h4>
+                <h4 className="font-semibold text-gray-700">Informações Pessoais</h4>
                 <div className="mt-2 space-y-1 text-sm">
-                  <p>
-                    <span className="text-gray-500">Telefone:</span>{" "}
-                    {selectedMember.phone}
-                  </p>
-                  <p>
-                    <span className="text-gray-500">Email:</span>{" "}
-                    {selectedMember.email}
-                  </p>
+                  <p><span className="text-gray-500">Telefone:</span> {selectedMember.phone || "N/A"}</p>
+                  <p><span className="text-gray-500">Email:</span> {selectedMember.email || "N/A"}</p>
                   <p>
                     <span className="text-gray-500">Data de Início:</span>{" "}
-                    {new Date(selectedMember.startDate).toLocaleDateString(
-                      "pt-BR",
-                    )}
+                    {selectedMember.start_date ? new Date(selectedMember.start_date).toLocaleDateString("pt-BR") : "N/A"}
                   </p>
                   <p>
                     <span className="text-gray-500">Tipo:</span>{" "}
-                    {selectedMember.type === "employee"
-                      ? "Funcionário"
-                      : selectedMember.type === "contractor"
-                        ? "Prestador"
-                        : selectedMember.type === "investor"
-                          ? "Investidor"
-                          : "Administrador"}
+                    {selectedMember.type === "employee" ? "Funcionário" :
+                      selectedMember.type === "contractor" ? "Prestador" :
+                        selectedMember.type === "investor" ? "Investidor" :
+                          selectedMember.type === "admin" ? "Administrador" : "N/A"}
                   </p>
                 </div>
               </div>
@@ -668,85 +619,74 @@ export function Team() {
               <div className="border-b border-gray-200 pb-3">
                 <h4 className="font-semibold text-gray-700">Pagamentos</h4>
                 <div className="mt-2 space-y-1 text-sm">
-                  <p>
-                    <span className="text-gray-500">Salário:</span> R${" "}
-                    {selectedMember.salary.toLocaleString()}
-                  </p>
+                  <p><span className="text-gray-500">Salário:</span> R$ {selectedMember.salary?.toLocaleString() || "0"}</p>
                   <p>
                     <span className="text-gray-500">Último pagamento:</span>{" "}
-                    {new Date(selectedMember.lastPayment).toLocaleDateString(
-                      "pt-BR",
-                    )}
+                    {selectedMember.last_payment ? new Date(selectedMember.last_payment).toLocaleDateString("pt-BR") : "N/A"}
                   </p>
                   <p>
                     <span className="text-gray-500">Próximo pagamento:</span>{" "}
-                    {new Date(selectedMember.nextPayment).toLocaleDateString(
-                      "pt-BR",
-                    )}
+                    {selectedMember.next_payment ? new Date(selectedMember.next_payment).toLocaleDateString("pt-BR") : "N/A"}
                   </p>
                 </div>
               </div>
 
               <div className="border-b border-gray-200 pb-3">
-                <h4 className="font-semibold text-gray-700">
-                  Avaliação e Produtividade
-                </h4>
+                <h4 className="font-semibold text-gray-700">Avaliação e Produtividade</h4>
                 <div className="mt-2 space-y-1 text-sm">
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">Avaliação:</span>
-                    <span className="font-medium">{selectedMember.rating}</span>
+                    <span className="font-medium">{selectedMember.rating || "—"}</span>
                     <span className="text-gray-400">/ 5</span>
                     <span className="flex">
                       {[...Array(5)].map((_, i) => (
-                        <span
-                          key={i}
-                          className={
-                            i < Math.floor(selectedMember.rating)
-                              ? "star-filled"
-                              : "star-empty"
-                          }
-                        >
+                        <span key={i} className={i < Math.floor(selectedMember.rating || 0) ? "star-filled" : "star-empty"}>
                           ★
                         </span>
                       ))}
                     </span>
                   </div>
-                  <p>
-                    <span className="text-gray-500">Tarefas concluídas:</span>{" "}
-                    {selectedMember.tasksCompleted}
-                  </p>
-                  <p>
-                    <span className="text-gray-500">Tarefas em andamento:</span>{" "}
-                    {selectedMember.tasksInProgress}
-                  </p>
-                  <p>
-                    <span className="text-gray-500">Eficiência:</span>{" "}
-                    {selectedMember.efficiency}%
-                  </p>
+                  <p><span className="text-gray-500">Tarefas concluídas:</span> {selectedMember.tasks_completed || 0}</p>
+                  <p><span className="text-gray-500">Tarefas em andamento:</span> {selectedMember.tasks_in_progress || 0}</p>
+                  <p><span className="text-gray-500">Eficiência:</span> {selectedMember.efficiency || "—"}%</p>
                 </div>
               </div>
 
               <div>
                 <h4 className="font-semibold text-gray-700">Projetos</h4>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {selectedMember.projects.map((p, i) => (
-                    <span
-                      key={i}
-                      className="badge-glow px-3 py-1 rounded-full text-xs font-medium"
-                    >
-                      {p}
-                    </span>
-                  ))}
+                  {selectedMember.projects && selectedMember.projects.length > 0 ? (
+                    selectedMember.projects.map((p, i) => (
+                      <span key={i} className="badge-glow px-3 py-1 rounded-full text-xs font-medium">{p}</span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-gray-400">Nenhum projeto associado</span>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="mt-6 flex gap-2">
-              <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition">
+              <button
+                onClick={() => {
+                  setShowProfile(false);
+                  handleEditMember(selectedMember);
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition"
+              >
                 Editar
               </button>
-              <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition">
+              <button
+                onClick={() => handlePayMember(selectedMember)}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition"
+              >
                 Pagar
+              </button>
+              <button
+                onClick={() => handleDeleteMember(selectedMember.id)}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition"
+              >
+                Excluir
               </button>
             </div>
           </div>

@@ -351,9 +351,7 @@ export function Landing() {
       {/* Floating Header com glass e glow */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-7xl z-50 glass-card rounded-2xl px-6 py-3 flex justify-between items-center shadow-lg transition-all duration-300 card-glow">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-on-primary font-title text-title text-sm shadow-md icon-glow">
-            D
-          </div>
+          <Logo variant="icon" className="w-9 h-9 shadow-md icon-glow" imgClassName="w-9 h-9" />
           <div>
             <h1 className="font-title text-lg font-bold leading-none text-primary">
               Despesify 2

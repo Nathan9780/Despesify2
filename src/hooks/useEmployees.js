@@ -8,27 +8,33 @@ export const useEmployees = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.warn("Usuário não autenticado, retornando lista vazia");
+        return [];
+      }
+
       const { data, error } = await supabase
         .from("employees")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", user.id)
         .order("name");
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
+    staleTime: 60000,
   });
 
+  // Criar funcionário
   const createEmployee = useMutation({
     mutationFn: async (newEmployee) => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("employees")
-        .insert([{ ...newEmployee, user_id: userId }])
+        .insert([{ ...newEmployee, user_id: user.id }])
         .select()
         .single();
-
       if (error) throw error;
       return data;
     },
@@ -38,6 +44,7 @@ export const useEmployees = () => {
     },
   });
 
+  // Atualizar funcionário
   const updateEmployee = useMutation({
     mutationFn: async ({ id, ...updates }) => {
       const { data, error } = await supabase
@@ -46,7 +53,6 @@ export const useEmployees = () => {
         .eq("id", id)
         .select()
         .single();
-
       if (error) throw error;
       return data;
     },
@@ -56,6 +62,29 @@ export const useEmployees = () => {
     },
   });
 
+  // Pagar funcionário (atualiza status e datas de pagamento)
+  const payEmployee = useMutation({
+    mutationFn: async ({ id, lastPayment, nextPayment }) => {
+      const { data, error } = await supabase
+        .from("employees")
+        .update({
+          status: "paid",
+          last_payment: lastPayment || new Date().toISOString(),
+          next_payment: nextPayment || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["employees"]);
+      queryClient.invalidateQueries(["dashboard"]);
+    },
+  });
+
+  // Excluir funcionário
   const deleteEmployee = useMutation({
     mutationFn: async (id) => {
       const { error } = await supabase.from("employees").delete().eq("id", id);
@@ -74,6 +103,7 @@ export const useEmployees = () => {
     error,
     createEmployee,
     updateEmployee,
+    payEmployee,
     deleteEmployee,
   };
 };

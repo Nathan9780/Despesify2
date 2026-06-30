@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Logo } from '../components/layout/ui/Logo';
 
 export function PlanSelection() {
   const navigate = useNavigate();
@@ -126,7 +127,7 @@ export function PlanSelection() {
         
         {/* Header Title */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-on-primary font-title text-2xl font-bold mx-auto mb-6 shadow-lg">D</div>
+          <Logo variant="icon" className="mx-auto mb-6 shadow-lg" imgClassName="w-14 h-14" />
           <h2 className="font-title text-3xl font-bold text-on-surface">Seja bem-vindo ao Despesify 2, {user.name}!</h2>
           <p className="font-body text-sm text-on-surface-variant mt-3 px-4">
             Para personalizar sua experiência, escolha o plano que melhor representa seus objetivos. Esta escolha poderá ser alterada posteriormente nas configurações de sua conta.

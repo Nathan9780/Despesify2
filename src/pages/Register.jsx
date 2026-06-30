@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "../components/layout/ui/Logo";
 
@@ -30,14 +30,23 @@ function validateCPF(cpf) {
 }
 
 export function Register() {
-  <div className="flex flex-col items-center justify-center min-h-screen">
-    <Logo className="h-12 mb-8" />
-    <h1 className="text-2xl font-bold text-gray-800">
-      Bem-vindo ao Despesify 2
-    </h1>
-    {/* Formulário */}
-  </div>;
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const currentUserStr = localStorage.getItem("currentUser");
+    if (currentUserStr) {
+      try {
+        const currentUser = JSON.parse(currentUserStr);
+        if (currentUser.plan) {
+          navigate("/dashboard");
+        } else {
+          navigate("/select-plan");
+        }
+      } catch (e) {
+        console.error("Failed to parse currentUser in Register", e);
+      }
+    }
+  }, [navigate]);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -221,9 +230,7 @@ export function Register() {
 
         {/* Heading */}
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-on-primary font-title text-xl font-bold mx-auto mb-4 shadow-md">
-            D
-          </div>
+          <Logo variant="icon" className="mx-auto mb-4 shadow-md" imgClassName="w-12 h-12" />
           <h2 className="font-title text-2xl font-bold text-on-surface">
             Crie sua conta gratuitamente
           </h2>

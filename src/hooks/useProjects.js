@@ -35,10 +35,9 @@ export const useProjects = () => {
 
   const createProject = useMutation({
     mutationFn: async (newProject) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (userError || !user) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase
         .from("projects")

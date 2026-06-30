@@ -6,10 +6,11 @@ export const useDashboard = () => {
   return useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
 
       // Se não houver usuário logado, retorna dados vazios
-      if (!userId) {
+      if (userError || !userId) {
         return {
           projects: { total: 0 },
           finances: { totalBudget: 0, totalSpent: 0, available: 0 },

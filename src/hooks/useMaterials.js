@@ -8,7 +8,12 @@ export const useMaterials = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["materials"],
     queryFn: async () => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (userError || !userId) {
+        console.warn("Usuário não autenticado, retornando lista vazia");
+        return [];
+      }
       const { data, error } = await supabase
         .from("materials")
         .select("*")
@@ -16,13 +21,15 @@ export const useMaterials = () => {
         .order("name");
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
   const createMaterial = useMutation({
     mutationFn: async (newMaterial) => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (userError || !userId) throw new Error("Usuário não autenticado");
       const { data, error } = await supabase
         .from("materials")
         .insert([{ ...newMaterial, user_id: userId }])
