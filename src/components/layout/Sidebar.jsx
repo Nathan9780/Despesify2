@@ -1,34 +1,59 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Logo } from "./ui/Logo";
 
 export function Sidebar() {
+  <div className="flex items-center gap-2 px-4 py-3 border-b">
+    <Logo variant="icon" className="h-8 w-8" />
+    <span className="font-bold text-lg text-white">
+      <span className="text-gray-300">espes</span>
+      <span className="text-[#4bc9c4]">ify</span>
+    </span>
+  </div>;
+
   const location = useLocation();
   const navigate = useNavigate();
 
-  const currentUserStr = localStorage.getItem('currentUser');
+  const currentUserStr = localStorage.getItem("currentUser");
   const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
 
   const planNames = {
-    citizen: { name: 'Plano Pessoal', icon: 'home', badge: 'bg-primary-container text-on-primary-container' },
-    enterprise: { name: 'Plano Empresarial', icon: 'business', badge: 'bg-secondary-container text-on-secondary-container' },
-    investor: { name: 'Plano Investidor', icon: 'payments', badge: 'bg-tertiary-fixed text-on-tertiary-fixed' },
+    citizen: {
+      name: "Plano Pessoal",
+      icon: "home",
+      badge: "bg-primary-container text-on-primary-container",
+    },
+    enterprise: {
+      name: "Plano Empresarial",
+      icon: "business",
+      badge: "bg-secondary-container text-on-secondary-container",
+    },
+    investor: {
+      name: "Plano Investidor",
+      icon: "payments",
+      badge: "bg-tertiary-fixed text-on-tertiary-fixed",
+    },
   };
 
-  const planInfo = currentUser?.plan 
-    ? planNames[currentUser.plan] 
-    : { name: 'Sem Plano', icon: 'person', badge: 'bg-surface-variant text-on-surface-variant' };
+  const planInfo = currentUser?.plan
+    ? planNames[currentUser.plan]
+    : {
+        name: "Sem Plano",
+        icon: "person",
+        badge: "bg-surface-variant text-on-surface-variant",
+      };
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
-    { name: 'Meus Projetos', path: '/projects', icon: 'folder_shared' },
-    { name: 'Equipe', path: '/team', icon: 'group' },
-    { name: 'Materiais', path: '/materials', icon: 'inventory_2' },
-    { name: 'Investidores', path: '/investors', icon: 'payments' },
-    { name: 'Mensagens', path: '/messages', icon: 'chat' },
+    { name: "Dashboard", path: "/dashboard", icon: "dashboard" },
+    { name: "Meus Projetos", path: "/projects", icon: "folder_shared" },
+    { name: "Equipe", path: "/team", icon: "group" },
+    { name: "Materiais", path: "/materials", icon: "inventory_2" },
+    { name: "Investidores", path: "/investors", icon: "payments" },
+    { name: "Mensagens", path: "/messages", icon: "chat" },
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    navigate('/login');
+    localStorage.removeItem("currentUser");
+    navigate("/login");
   };
 
   return (
@@ -36,22 +61,36 @@ export function Sidebar() {
       {/* Brand logo & active user profile */}
       <div className="px-lateral_padding mb-6 flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-title text-title shadow-sm">D</div>
+          <div className="w-10 h-10 rounded bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-title text-title shadow-sm">
+            D
+          </div>
           <div>
-            <h1 className="font-title text-title text-on-secondary text-lg leading-tight">Despesify 2</h1>
-            <p className="font-label text-[10px] text-on-secondary opacity-70">Unified Management</p>
+            <h1 className="font-title text-title text-on-secondary text-lg leading-tight">
+              Despesify 2
+            </h1>
+            <p className="font-label text-[10px] text-on-secondary opacity-70">
+              Unified Management
+            </p>
           </div>
         </div>
-        
+
         {/* User Card */}
         {currentUser && (
           <div className="mt-3 p-3 bg-surface-container/10 border border-white/10 rounded-xl flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-on-secondary opacity-80">account_circle</span>
-              <span className="font-label text-xs text-on-secondary font-bold truncate max-w-[160px]">{currentUser.name}</span>
+              <span className="material-symbols-outlined text-[18px] text-on-secondary opacity-80">
+                account_circle
+              </span>
+              <span className="font-label text-xs text-on-secondary font-bold truncate max-w-[160px]">
+                {currentUser.name}
+              </span>
             </div>
-            <div className={`px-2 py-0.5 rounded text-[9px] font-label font-bold flex items-center gap-1.5 w-fit ${planInfo.badge}`}>
-              <span className="material-symbols-outlined text-[12px]">{planInfo.icon}</span>
+            <div
+              className={`px-2 py-0.5 rounded text-[9px] font-label font-bold flex items-center gap-1.5 w-fit ${planInfo.badge}`}
+            >
+              <span className="material-symbols-outlined text-[12px]">
+                {planInfo.icon}
+              </span>
               {planInfo.name}
             </div>
           </div>
@@ -65,11 +104,18 @@ export function Sidebar() {
             <Link
               key={item.name}
               to={item.path}
-              className={isActive 
-                ? "bg-secondary-container text-on-secondary-container rounded-lg mx-2 px-4 py-2 flex items-center gap-3 font-label text-label scale-[0.98] transition-transform duration-200"
-                : "text-on-secondary opacity-80 hover:opacity-100 hover:bg-secondary-container/50 transition-colors mx-2 px-4 py-2 flex items-center gap-3 rounded-lg font-label text-label"}
+              className={
+                isActive
+                  ? "bg-secondary-container text-on-secondary-container rounded-lg mx-2 px-4 py-2 flex items-center gap-3 font-label text-label scale-[0.98] transition-transform duration-200"
+                  : "text-on-secondary opacity-80 hover:opacity-100 hover:bg-secondary-container/50 transition-colors mx-2 px-4 py-2 flex items-center gap-3 rounded-lg font-label text-label"
+              }
             >
-              <span className="material-symbols-outlined text-[20px]" style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
+              <span
+                className="material-symbols-outlined text-[20px]"
+                style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}
+              >
+                {item.icon}
+              </span>
               {item.name}
             </Link>
           );
@@ -80,11 +126,22 @@ export function Sidebar() {
       <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-1">
         <Link
           to="/settings"
-          className={location.pathname.startsWith('/settings')
-            ? "bg-secondary-container text-on-secondary-container rounded-lg mx-2 px-4 py-2 flex items-center gap-3 font-label text-label scale-[0.98] transition-transform duration-200"
-            : "text-on-secondary opacity-80 hover:opacity-100 hover:bg-secondary-container/50 transition-colors mx-2 px-4 py-2 flex items-center gap-3 rounded-lg font-label text-label"}
+          className={
+            location.pathname.startsWith("/settings")
+              ? "bg-secondary-container text-on-secondary-container rounded-lg mx-2 px-4 py-2 flex items-center gap-3 font-label text-label scale-[0.98] transition-transform duration-200"
+              : "text-on-secondary opacity-80 hover:opacity-100 hover:bg-secondary-container/50 transition-colors mx-2 px-4 py-2 flex items-center gap-3 rounded-lg font-label text-label"
+          }
         >
-          <span className="material-symbols-outlined text-[20px]" style={location.pathname.startsWith('/settings') ? { fontVariationSettings: "'FILL' 1" } : {}}>settings</span>
+          <span
+            className="material-symbols-outlined text-[20px]"
+            style={
+              location.pathname.startsWith("/settings")
+                ? { fontVariationSettings: "'FILL' 1" }
+                : {}
+            }
+          >
+            settings
+          </span>
           Configurações
         </Link>
         <button

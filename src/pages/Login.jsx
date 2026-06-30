@@ -1,21 +1,30 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Logo } from "../components/layout/ui/Logo";
 
 export function Login() {
+  <div className="flex flex-col items-center justify-center min-h-screen">
+    <Logo className="h-12 mb-8" />
+    <h1 className="text-2xl font-bold text-gray-800">
+      Bem-vindo ao Despesify 2
+    </h1>
+    {/* Formulário */}
+  </div>;
+
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [infoMessage, setInfoMessage] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = (e) => {
     e.preventDefault();
-    setError('');
-    setInfoMessage('');
+    setError("");
+    setInfoMessage("");
 
     if (!email || !password) {
-      setError('Por favor, preencha todos os campos.');
+      setError("Por favor, preencha todos os campos.");
       return;
     }
 
@@ -23,36 +32,41 @@ export function Login() {
 
     // Simulate database lookup from localStorage 'users'
     setTimeout(() => {
-      const usersStr = localStorage.getItem('users');
+      const usersStr = localStorage.getItem("users");
       const users = usersStr ? JSON.parse(usersStr) : [];
-      
+
       // Default mock users for testing
       const defaultUser = {
-        email: 'demo@despesify.com',
-        password: 'demo',
-        name: 'Usuário Demo',
-        plan: null // will select plan
+        email: "demo@despesify.com",
+        password: "demo",
+        name: "Usuário Demo",
+        plan: null, // will select plan
       };
 
-      const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      const foundUser = users.find(
+        (u) => u.email.toLowerCase() === email.toLowerCase(),
+      );
 
-      if (email.toLowerCase() === defaultUser.email && password === defaultUser.password) {
-        localStorage.setItem('currentUser', JSON.stringify(defaultUser));
-        navigate('/select-plan');
+      if (
+        email.toLowerCase() === defaultUser.email &&
+        password === defaultUser.password
+      ) {
+        localStorage.setItem("currentUser", JSON.stringify(defaultUser));
+        navigate("/select-plan");
       } else if (foundUser) {
         if (foundUser.password === password) {
-          localStorage.setItem('currentUser', JSON.stringify(foundUser));
+          localStorage.setItem("currentUser", JSON.stringify(foundUser));
           if (foundUser.plan) {
-            navigate('/dashboard');
+            navigate("/dashboard");
           } else {
-            navigate('/select-plan');
+            navigate("/select-plan");
           }
         } else {
-          setError('Senha incorreta.');
+          setError("Senha incorreta.");
           setIsLoading(false);
         }
       } else {
-        setError('E-mail não cadastrado. Cadastre-se clicando abaixo.');
+        setError("E-mail não cadastrado. Cadastre-se clicando abaixo.");
         setIsLoading(false);
       }
     }, 1000);
@@ -62,22 +76,26 @@ export function Login() {
     setIsLoading(true);
     setTimeout(() => {
       const googleUser = {
-        name: 'Usuário Google',
-        email: 'google.user@gmail.com',
-        plan: null
+        name: "Usuário Google",
+        email: "google.user@gmail.com",
+        plan: null,
       };
-      localStorage.setItem('currentUser', JSON.stringify(googleUser));
-      navigate('/select-plan');
+      localStorage.setItem("currentUser", JSON.stringify(googleUser));
+      navigate("/select-plan");
     }, 800);
   };
 
   const handleForgotPassword = () => {
     if (!email) {
-      setError('Insira seu endereço de e-mail no campo acima para recuperar a senha.');
+      setError(
+        "Insira seu endereço de e-mail no campo acima para recuperar a senha.",
+      );
       return;
     }
-    setError('');
-    setInfoMessage(`Um link de recuperação de senha foi enviado para: ${email}`);
+    setError("");
+    setInfoMessage(
+      `Um link de recuperação de senha foi enviado para: ${email}`,
+    );
   };
 
   return (
@@ -87,19 +105,28 @@ export function Login() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-secondary/15 blur-[100px] pointer-events-none"></div>
 
       <div className="w-full max-w-md bg-white dark:bg-inverse-surface/5 border border-outline-variant/30 rounded-2xl shadow-xl p-8 backdrop-blur-md relative z-10">
-        
         {/* Back Link to Landing */}
-        <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-label text-on-surface-variant hover:text-primary transition-colors mb-6 group">
-          <span className="material-symbols-outlined text-[14px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs font-label text-on-surface-variant hover:text-primary transition-colors mb-6 group"
+        >
+          <span className="material-symbols-outlined text-[14px] group-hover:-translate-x-0.5 transition-transform">
+            arrow_back
+          </span>
           Voltar para Início
         </Link>
 
         {/* Logo and Greeting */}
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-on-primary font-title text-xl font-bold mx-auto mb-4 shadow-md">D</div>
-          <h2 className="font-title text-2xl font-bold text-on-surface">Bem-vindo ao Despesify 2</h2>
+          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-on-primary font-title text-xl font-bold mx-auto mb-4 shadow-md">
+            D
+          </div>
+          <h2 className="font-title text-2xl font-bold text-on-surface">
+            Bem-vindo ao Despesify 2
+          </h2>
           <p className="font-body text-xs text-on-surface-variant mt-2 px-2">
-            Acesse sua conta para gerenciar seus projetos, finanças, fornecedores e investimentos.
+            Acesse sua conta para gerenciar seus projetos, finanças,
+            fornecedores e investimentos.
           </p>
         </div>
 
@@ -120,9 +147,13 @@ export function Login() {
         {/* Credentials Form */}
         <form onSubmit={handleLogin} className="space-y-5 mb-6">
           <div>
-            <label className="font-label text-xs text-on-surface-variant block mb-1.5 font-bold">E-mail</label>
+            <label className="font-label text-xs text-on-surface-variant block mb-1.5 font-bold">
+              E-mail
+            </label>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">mail</span>
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
+                mail
+              </span>
               <input
                 type="email"
                 value={email}
@@ -135,7 +166,9 @@ export function Login() {
 
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="font-label text-xs text-on-surface-variant font-bold">Senha</label>
+              <label className="font-label text-xs text-on-surface-variant font-bold">
+                Senha
+              </label>
               <button
                 type="button"
                 onClick={handleForgotPassword}
@@ -145,7 +178,9 @@ export function Login() {
               </button>
             </div>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">lock</span>
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
+                lock
+              </span>
               <input
                 type="password"
                 value={password}
@@ -175,7 +210,9 @@ export function Login() {
         {/* Separator */}
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 h-[1px] bg-outline-variant/35"></div>
-          <span className="font-label text-[10px] uppercase text-on-surface-variant font-bold">Ou entre com</span>
+          <span className="font-label text-[10px] uppercase text-on-surface-variant font-bold">
+            Ou entre com
+          </span>
           <div className="flex-1 h-[1px] bg-outline-variant/35"></div>
         </div>
 
@@ -209,7 +246,10 @@ export function Login() {
         {/* Footer Link */}
         <div className="text-center font-label text-xs text-on-surface-variant">
           <span>É novo por aqui? </span>
-          <Link to="/register" className="text-primary font-bold hover:underline">
+          <Link
+            to="/register"
+            className="text-primary font-bold hover:underline"
+          >
             Faça seu cadastro
           </Link>
         </div>
@@ -217,10 +257,12 @@ export function Login() {
         {/* Quick Demo Info helper */}
         <div className="mt-8 pt-4 border-t border-outline-variant/20 flex flex-col items-center">
           <p className="font-label text-[10px] text-on-surface-variant text-center opacity-70">
-            Dica para teste rápido:<br />E-mail: <span className="font-bold">demo@despesify.com</span> | Senha: <span className="font-bold">demo</span>
+            Dica para teste rápido:
+            <br />
+            E-mail: <span className="font-bold">demo@despesify.com</span> |
+            Senha: <span className="font-bold">demo</span>
           </p>
         </div>
-
       </div>
     </div>
   );

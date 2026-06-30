@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Logo } from "../components/layout/ui/Logo";
 
 export function Landing() {
+  // No header flutuante
+  <header className="fixed top-4...">
+    <Logo className="h-8" />
+    {/* ... */}
+  </header>;
+
   // Carousel for quotes
   const quotes = [
     {
@@ -402,6 +409,10 @@ export function Landing() {
           <span className="text-xs font-label text-primary font-medium tracking-wide">
             Uma Plataforma Totalmente Integrada
           </span>
+          <div className="hero-section">
+            <Logo className="h-16" />
+            {/* ... */}
+          </div>
         </div>
 
         {/* Carousel Quotes */}
