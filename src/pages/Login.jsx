@@ -72,7 +72,11 @@ export function Login() {
         },
       });
       if (error) {
-        setError(error.message);
+        if (error.message?.includes("provider is not enabled") || error.message?.includes("Unsupported provider")) {
+          setError("O login com Google não está habilitado no painel do Supabase. Habilite-o em Authentication > Providers ou entre com e-mail/senha.");
+        } else {
+          setError(error.message);
+        }
         setIsLoading(false);
       }
       // O redirecionamento é automático após o login do Google
