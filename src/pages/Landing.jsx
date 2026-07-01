@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Logo } from "../components/layout/ui/Logo";
+import { Logo } from "../ui/Logo";
 
 export function Landing() {
   // No header flutuante
@@ -351,7 +351,11 @@ export function Landing() {
       {/* Floating Header com glass e glow */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-7xl z-50 glass-card rounded-2xl px-6 py-3 flex justify-between items-center shadow-lg transition-all duration-300 card-glow">
         <div className="flex items-center gap-3">
-          <Logo variant="icon" className="w-9 h-9 shadow-md icon-glow" imgClassName="w-9 h-9" />
+          <Logo
+            variant="icon"
+            className="w-9 h-9 shadow-md icon-glow"
+            imgClassName="w-9 h-9"
+          />
           <div>
             <h1 className="font-title text-lg font-bold leading-none text-primary">
               Despesify 2

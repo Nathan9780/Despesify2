@@ -1,0 +1,116 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #359eab;
+    --color-primary-light: #4fb5c2;
+    --color-primary-dark: #2a7d87;
+    --color-background: #e5e7eb;
+    --color-surface: #ffffff;
+    --color-text: #1f2937;
+    --color-text-secondary: #6b7280;
+    --color-border: #d1d5db;
+  }
+
+  .dark {
+    --color-background: #0f1829;
+    --color-surface: #1a2438;
+    --color-text: #e5e7eb;
+    --color-text-secondary: #9ca3af;
+    --color-border: #374151;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
+    font-family: "Manrope", sans-serif;
+  }
+
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-background);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary-dark);
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+  }
+  .dark .glass-card {
+    background: rgba(26, 36, 56, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  }
+  .glass-card:hover {
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+  }
+  .dark .glass-card:hover {
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    transition: all 0.25s ease;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 24px rgba(53, 158, 171, 0.4);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  /* Animações */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease forwards;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-slide-down {
+    animation: slideDown 0.25s ease forwards;
+  }
+}

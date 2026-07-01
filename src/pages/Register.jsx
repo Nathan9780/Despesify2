@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Logo } from "../components/layout/ui/Logo";
+import { Logo } from "../ui/Logo";
 
 // CPF validation algorithm
 function validateCPF(cpf) {
@@ -230,7 +230,11 @@ export function Register() {
 
         {/* Heading */}
         <div className="text-center mb-8">
-          <Logo variant="icon" className="mx-auto mb-4 shadow-md" imgClassName="w-12 h-12" />
+          <Logo
+            variant="icon"
+            className="mx-auto mb-4 shadow-md"
+            imgClassName="w-12 h-12"
+          />
           <h2 className="font-title text-2xl font-bold text-on-surface">
             Crie sua conta gratuitamente
           </h2>

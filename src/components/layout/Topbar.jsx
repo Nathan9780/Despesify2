@@ -1,6 +1,8 @@
+// src/components/layout/Topbar.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Logo } from "./ui/Logo";
+import { ThemeToggle } from "../ui/ThemeToggle";
 import { supabase } from "../../lib/supabase";
 
 export function Topbar() {
@@ -14,12 +16,16 @@ export function Topbar() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
       setUser(currentUser);
     };
     getUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
 
@@ -55,10 +61,11 @@ export function Topbar() {
     { to: "/messages", label: "Mensagens", icon: "chat" },
   ];
 
-  const userName = user?.user_metadata?.full_name || 
-                   user?.user_metadata?.name || 
-                   user?.email?.split('@')[0] || 
-                   "Usuário";
+  const userName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "Usuário";
 
   const userInitial = userName.charAt(0).toUpperCase();
 
@@ -69,12 +76,12 @@ export function Topbar() {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-16 px-6 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-md border-b border-outline-variant/30 flex items-center justify-between shadow-sm select-none">
+    <header className="fixed top-0 left-0 right-0 z-50 h-16 px-6 bg-white/70 dark:bg-[#0F1829]/95 backdrop-blur-md border-b border-white/30 dark:border-[#1A2438] flex items-center justify-between shadow-sm select-none transition-colors duration-300">
       {/* Esquerda: Logo */}
       <Link to="/dashboard" className="flex items-center gap-2">
         <Logo variant="icon" className="h-8 w-8" />
         <span className="font-bold text-lg hidden sm:inline font-body">
-          <span className="text-[#9CA3AF]">espes</span>
+          <span className="text-gray-300 dark:text-gray-500">espes</span>
           <span className="text-[#4bc9c4]">ify</span>
         </span>
       </Link>
@@ -88,12 +95,14 @@ export function Topbar() {
             className={({ isActive }) =>
               `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-[1px] font-label ${
                 isActive
-                  ? "text-[#2980B9] bg-[#2980B9]/5 border-b-2 border-[#4bc9c4] shadow-sm font-bold"
-                  : "text-[#74777C] hover:text-[#2980B9] hover:bg-[#2980B9]/5"
+                  ? "text-[#2980B9] dark:text-[#4FB5C2] bg-[#2980B9]/5 dark:bg-[#4FB5C2]/10 border-b-2 border-[#4bc9c4] shadow-sm font-bold"
+                  : "text-[#74777C] dark:text-[#9CA3AF] hover:text-[#2980B9] dark:hover:text-[#4FB5C2] hover:bg-[#2980B9]/5 dark:hover:bg-[#4FB5C2]/10"
               }`
             }
           >
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+            <span className="material-symbols-outlined text-[20px]">
+              {item.icon}
+            </span>
             {item.label}
           </NavLink>
         ))}
@@ -101,13 +110,18 @@ export function Topbar() {
 
       {/* Direita: Ações */}
       <div className="flex items-center gap-4">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
         {/* Notificações */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setIsNotifOpen(!isNotifOpen)}
-            className="p-2 rounded-full hover:bg-primary/5 text-[#1B4F72] hover:text-[#2980B9] transition-all relative"
+            className="p-2 rounded-full hover:bg-primary/5 text-[#1B4F72] dark:text-[#9CA3AF] hover:text-[#2980B9] dark:hover:text-[#4FB5C2] transition-all relative"
           >
-            <span className="material-symbols-outlined text-[22px]">notifications</span>
+            <span className="material-symbols-outlined text-[22px]">
+              notifications
+            </span>
             <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#DC2626] text-white text-[8px] font-bold rounded-full flex items-center justify-center animate-pulse">
               3
             </span>
@@ -115,18 +129,31 @@ export function Topbar() {
 
           {/* Painel de Notificações Dropdown */}
           {isNotifOpen && (
-            <div className="absolute right-0 mt-2 w-72 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-xl shadow-lg border border-outline-variant/30 py-3 z-50 animate-fade-in font-body">
-              <div className="px-4 pb-2 border-b border-outline-variant/20 flex justify-between items-center">
-                <span className="font-bold text-xs text-gray-800 dark:text-gray-200">Notificações</span>
-                <span className="text-[10px] text-blue-600 cursor-pointer hover:underline">Limpar</span>
+            <div className="absolute right-0 mt-2 w-72 bg-white/95 dark:bg-[#1A2438]/95 backdrop-blur-md rounded-xl shadow-lg border border-white/30 dark:border-[#374151] py-3 z-50 animate-fade-in font-body">
+              <div className="px-4 pb-2 border-b border-white/30 dark:border-[#374151] flex justify-between items-center">
+                <span className="font-bold text-xs text-gray-800 dark:text-gray-200">
+                  Notificações
+                </span>
+                <span className="text-[10px] text-blue-600 cursor-pointer hover:underline">
+                  Limpar
+                </span>
               </div>
               <div className="max-h-60 overflow-y-auto">
                 {notifications.map((notif) => (
-                  <div key={notif.id} className="px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-zinc-800/50 flex gap-2 border-b border-outline-variant/10 last:border-0 cursor-pointer">
-                    <span className="material-symbols-outlined text-sm text-blue-500 mt-0.5">info</span>
+                  <div
+                    key={notif.id}
+                    className="px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-[#0F1829]/50 flex gap-2 border-b border-white/10 dark:border-[#374151]/30 last:border-0 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm text-blue-500 dark:text-blue-400 mt-0.5">
+                      info
+                    </span>
                     <div>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 leading-normal">{notif.text}</p>
-                      <span className="text-[9px] text-gray-400 mt-1 block">{notif.time} atrás</span>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 leading-normal">
+                        {notif.text}
+                      </p>
+                      <span className="text-[9px] text-gray-400 mt-1 block">
+                        {notif.time} atrás
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -138,9 +165,11 @@ export function Topbar() {
         {/* Configurações (Acesso Rápido) */}
         <Link
           to="/settings"
-          className="p-2 rounded-full hover:bg-primary/5 text-[#1B4F72] hover:text-[#2980B9] transition-all hidden sm:block"
+          className="p-2 rounded-full hover:bg-primary/5 text-[#1B4F72] dark:text-[#9CA3AF] hover:text-[#2980B9] dark:hover:text-[#4FB5C2] transition-all hidden sm:block"
         >
-          <span className="material-symbols-outlined text-[22px]">settings</span>
+          <span className="material-symbols-outlined text-[22px]">
+            settings
+          </span>
         </Link>
 
         {/* Avatar / Dropdown de Usuário */}
@@ -149,44 +178,56 @@ export function Topbar() {
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="flex items-center gap-1.5 p-1 rounded-full hover:bg-primary/5 transition-all outline-none"
           >
-            <div className="w-8 h-8 rounded-full bg-[#2980B9]/20 flex items-center justify-center text-[#2980B9] font-bold text-sm border border-[#2980B9]/10 shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-[#2980B9]/20 dark:bg-[#4FB5C2]/20 flex items-center justify-center text-[#2980B9] dark:text-[#4FB5C2] font-bold text-sm border border-[#2980B9]/10 dark:border-[#4FB5C2]/20 shadow-sm">
               {userInitial}
             </div>
             <span className="hidden sm:inline text-xs font-semibold text-gray-700 dark:text-gray-300">
               {userName}
             </span>
-            <span className="material-symbols-outlined text-[18px] text-[#74777C]">expand_more</span>
+            <span className="material-symbols-outlined text-[18px] text-[#74777C] dark:text-[#9CA3AF]">
+              expand_more
+            </span>
           </button>
 
           {/* Dropdown Menu */}
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-xl shadow-lg border border-outline-variant/30 py-2 z-50 animate-fade-in font-label">
-              <div className="px-4 py-2 border-b border-outline-variant/20 mb-1">
-                <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{userName}</p>
-                <p className="text-[10px] text-gray-400 truncate">{user?.email}</p>
+            <div className="absolute right-0 mt-2 w-48 bg-white/95 dark:bg-[#1A2438]/95 backdrop-blur-md rounded-xl shadow-lg border border-white/30 dark:border-[#374151] py-2 z-50 animate-fade-in font-label">
+              <div className="px-4 py-2 border-b border-white/30 dark:border-[#374151] mb-1">
+                <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
+                  {userName}
+                </p>
+                <p className="text-[10px] text-gray-400 truncate">
+                  {user?.email}
+                </p>
               </div>
               <Link
                 to="/settings"
                 onClick={() => setIsDropdownOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0F1829] transition"
               >
-                <span className="material-symbols-outlined text-sm">person</span>
+                <span className="material-symbols-outlined text-sm">
+                  person
+                </span>
                 Meu Perfil
               </Link>
               <Link
                 to="/settings"
                 onClick={() => setIsDropdownOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0F1829] transition"
               >
-                <span className="material-symbols-outlined text-sm">settings</span>
+                <span className="material-symbols-outlined text-sm">
+                  settings
+                </span>
                 Configurações
               </Link>
-              <div className="border-t border-outline-variant/20 my-1"></div>
+              <div className="border-t border-white/30 dark:border-[#374151] my-1"></div>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-4 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 w-full text-left transition font-semibold"
               >
-                <span className="material-symbols-outlined text-sm">logout</span>
+                <span className="material-symbols-outlined text-sm">
+                  logout
+                </span>
                 Sair da Conta
               </button>
             </div>
@@ -196,7 +237,7 @@ export function Topbar() {
         {/* Menu Hambúrguer (Mobile) */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 rounded-full hover:bg-primary/5 text-[#1B4F72] hover:text-[#2980B9] transition-all md:hidden outline-none"
+          className="p-2 rounded-full hover:bg-primary/5 text-[#1B4F72] dark:text-[#9CA3AF] hover:text-[#2980B9] dark:hover:text-[#4FB5C2] transition-all md:hidden outline-none"
         >
           <span className="material-symbols-outlined text-[24px]">
             {isMobileMenuOpen ? "close" : "menu"}
@@ -210,16 +251,18 @@ export function Topbar() {
           <div
             className="fixed inset-0 top-16 bg-black/20 backdrop-blur-sm z-40 transition-all md:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
-          ></div>
-          <div className="absolute top-16 left-0 right-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-outline-variant/30 p-4 flex flex-col gap-2.5 z-50 md:hidden shadow-lg animate-slide-down font-label">
+          />
+          <div className="absolute top-16 left-0 right-0 bg-white/95 dark:bg-[#1A2438]/95 backdrop-blur-md border-b border-white/30 dark:border-[#374151] p-4 flex flex-col gap-2.5 z-50 md:hidden shadow-lg animate-slide-down font-label">
             {navItems.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm font-semibold text-gray-700 dark:text-gray-300"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-[#0F1829] text-sm font-semibold text-gray-700 dark:text-gray-300"
               >
-                <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                <span className="material-symbols-outlined text-lg">
+                  {item.icon}
+                </span>
                 {item.label}
               </Link>
             ))}

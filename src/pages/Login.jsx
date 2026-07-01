@@ -1,7 +1,7 @@
 // src/pages/Login.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Logo } from "../components/layout/ui/Logo";
+import { Logo } from "../ui/Logo";
 import { supabase } from "../lib/supabase";
 
 export function Login() {
@@ -72,8 +72,13 @@ export function Login() {
         },
       });
       if (error) {
-        if (error.message?.includes("provider is not enabled") || error.message?.includes("Unsupported provider")) {
-          setError("O login com Google não está habilitado no painel do Supabase. Habilite-o em Authentication > Providers ou entre com e-mail/senha.");
+        if (
+          error.message?.includes("provider is not enabled") ||
+          error.message?.includes("Unsupported provider")
+        ) {
+          setError(
+            "O login com Google não está habilitado no painel do Supabase. Habilite-o em Authentication > Providers ou entre com e-mail/senha.",
+          );
         } else {
           setError(error.message);
         }
@@ -105,7 +110,11 @@ export function Login() {
         </Link>
 
         <div className="text-center mb-8">
-          <Logo variant="icon" className="mx-auto mb-4 shadow-md" imgClassName="w-12 h-12" />
+          <Logo
+            variant="icon"
+            className="mx-auto mb-4 shadow-md"
+            imgClassName="w-12 h-12"
+          />
           <h2 className="font-title text-2xl font-bold text-on-surface">
             Bem-vindo ao Despesify 2
           </h2>
