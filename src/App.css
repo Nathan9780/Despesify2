@@ -1,6 +1,6 @@
-/* ===== VARIÁVEIS (MANTENHA OU SUBSTITUA PELAS SUAS) ===== */
+/* ===== VARIÁVEIS ===== */
 :root {
-  --accent: #2980b9; /* Azul primário do seu projeto */
+  --accent: #2980b9;
   --accent-bg: rgba(41, 128, 185, 0.08);
   --accent-border: rgba(41, 128, 185, 0.3);
   --border: rgba(116, 119, 124, 0.2);
@@ -11,23 +11,23 @@
   --glass-border: rgba(255, 255, 255, 0.3);
 }
 
-/* ===== CONTADOR COM EFEITO DE LUZ ===== */
+/* ===== CONTADOR ===== */
 .counter {
   font-size: 16px;
   padding: 8px 18px;
-  border-radius: 50px; /* mais arredondado */
+  border-radius: 50px;
   color: var(--accent);
   background: var(--accent-bg);
   border: 2px solid transparent;
   transition: all 0.4s ease;
   margin-bottom: 24px;
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   box-shadow: 0 0 20px rgba(41, 128, 185, 0.1);
   position: relative;
   overflow: hidden;
 }
 
-/* Efeito de luz pulsante no contador */
 .counter::before {
   content: "";
   position: absolute;
@@ -44,10 +44,14 @@
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0;
   transition: opacity 0.5s;
+  pointer-events: none;
 }
 
 .counter:hover::before {
@@ -65,7 +69,7 @@
   outline-offset: 4px;
 }
 
-/* ===== HERO COM EFEITO DE GLOW NOS LOGOS ===== */
+/* ===== HERO ===== */
 .hero {
   position: relative;
   display: flex;
@@ -126,7 +130,7 @@
   filter: drop-shadow(0 0 30px rgba(52, 152, 219, 0.25));
 }
 
-/* ===== CENTER (CONTEÚDO PRINCIPAL) ===== */
+/* ===== CENTER ===== */
 #center {
   display: flex;
   flex-direction: column;
@@ -149,7 +153,7 @@
   }
 }
 
-/* ===== NEXT STEPS (CARDS COM VIDRO E LUZ) ===== */
+/* ===== NEXT STEPS ===== */
 #next-steps {
   display: flex;
   border-top: 1px solid var(--border);
@@ -157,6 +161,7 @@
   gap: 0;
   background: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 16px;
   margin: 0 20px;
   overflow: hidden;
@@ -174,7 +179,6 @@
   overflow: hidden;
 }
 
-/* Efeito de luz que se move no hover de cada card */
 #next-steps > div::after {
   content: "";
   position: absolute;
@@ -222,7 +226,7 @@
   }
 }
 
-/* ===== DOCS (PRIMEIRO CARD) ===== */
+/* ===== DOCS ===== */
 #docs {
   border-right: 1px solid var(--border);
 }
@@ -234,7 +238,7 @@
   }
 }
 
-/* ===== LINKS SOCIAIS (COM GLOW) ===== */
+/* ===== LINKS SOCIAIS ===== */
 #next-steps ul {
   list-style: none;
   padding: 0;
@@ -250,7 +254,7 @@
 #next-steps ul a {
   color: var(--text-h);
   font-size: 16px;
-  border-radius: 50px; /* mais moderno */
+  border-radius: 50px;
   background: var(--social-bg);
   display: flex;
   padding: 8px 16px;
@@ -260,6 +264,7 @@
   transition: all 0.3s ease;
   border: 1px solid transparent;
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
@@ -329,7 +334,7 @@
   }
 }
 
-/* ===== TICKS (DECORAÇÃO) ===== */
+/* ===== TICKS ===== */
 .ticks {
   position: relative;
   width: 100%;
@@ -357,7 +362,7 @@
   border-right-color: var(--border);
 }
 
-/* ===== EFEITO EXTRA: PULSO NO FUNDO (OPCIONAL) ===== */
+/* ===== FUNDO ===== */
 body {
   background: radial-gradient(
     ellipse at 50% 0%,

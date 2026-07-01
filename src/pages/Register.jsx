@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Logo } from "../ui/Logo";
+import { Logo } from "../components/layout/ui/Logo";
 
 // CPF validation algorithm
 function validateCPF(cpf) {
