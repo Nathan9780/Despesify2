@@ -10,6 +10,7 @@ import { Projects } from "./pages/Projects";
 import { Team } from "./pages/Team";
 import { Materials } from "./pages/Materials";
 import { Messages } from "./pages/Messages";
+import { Investors } from "./pages/Investors";
 
 function App() {
   return (
