@@ -6,7 +6,7 @@ export function Projects() {
   const navigate = useNavigate();
 
   // Dados reais do Supabase
-  const { projects, isLoading, error, deleteProject } = useProjects();
+  const { projects, isLoading, error, deleteProject, createProject } = useProjects();
 
   // Estados para filtros e busca
   const [searchTerm, setSearchTerm] = useState("");
@@ -14,6 +14,31 @@ export function Projects() {
   const [visibilityFilter, setVisibilityFilter] = useState("Todos");
   const [budgetFilter, setBudgetFilter] = useState("Todos");
   const [sortBy, setSortBy] = useState("data");
+
+  // Estados do Modal
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    category: "Construção",
+    visibility: "private",
+    budget: "",
+  });
+
+  const handleSaveProject = async () => {
+    try {
+      await createProject.mutateAsync({
+        name: formData.name,
+        category: formData.category,
+        visibility: formData.visibility,
+        budget: parseFloat(formData.budget) || 0,
+      });
+      setShowModal(false);
+      setFormData({ name: "", category: "Construção", visibility: "private", budget: "" });
+    } catch (err) {
+      console.error("Erro ao criar projeto:", err);
+      alert("Erro ao criar o projeto. Verifique os dados e tente novamente.");
+    }
+  };
 
   // Obter categorias únicas dos dados reais
   const categories = useMemo(() => {
@@ -241,12 +266,10 @@ export function Projects() {
             Gerencie todos os seus projetos em um único lugar.
           </p>
         </div>
-        <Link to="/projects/new">
-          <button className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0">
-            <span className="material-symbols-outlined text-lg">add</span>
-            Novo Projeto
-          </button>
-        </Link>
+        <button onClick={() => setShowModal(true)} className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0">
+          <span className="material-symbols-outlined text-lg">add</span>
+          Novo Projeto
+        </button>
       </div>
 
       {/* Cards de resumo */}
@@ -467,11 +490,9 @@ export function Projects() {
           <p className="text-sm text-gray-500">
             Tente ajustar os filtros ou criar um novo projeto.
           </p>
-          <Link to="/projects/new">
-            <button className="mt-4 btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-              + Criar Projeto
-            </button>
-          </Link>
+          <button onClick={() => setShowModal(true)} className="mt-4 btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            + Criar Projeto
+          </button>
         </div>
       ) : (
         <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -587,6 +608,74 @@ export function Projects() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal de Novo Projeto */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">Novo Projeto</h3>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSaveProject(); }}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nome do Projeto</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Ex: Reforma Residencial"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Categoria</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option>Construção</option>
+                  <option>Reforma</option>
+                  <option>Consultoria</option>
+                  <option>Design de Interiores</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Orçamento Previsto (R$)</label>
+                <input
+                  type="number"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Visibilidade</label>
+                <select
+                  value={formData.visibility}
+                  onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="private">🔒 Privado</option>
+                  <option value="public">🌎 Público</option>
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition"
+              >
+                Criar Projeto
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

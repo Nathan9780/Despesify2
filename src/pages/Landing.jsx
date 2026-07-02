@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Logo } from "../ui/Logo";
+import { Logo } from "../components/layout/ui/Logo";
 
 export function Landing() {
   // No header flutuante

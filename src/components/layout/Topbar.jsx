@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Logo } from "./ui/Logo";
-import { ThemeToggle } from "../ui/ThemeToggle";
+import { ThemeToggle } from "./ui/ThemeToggle";
 import { supabase } from "../../lib/supabase";
+import { useNotifications } from "../../hooks/useNotifications";
 
 export function Topbar() {
   const navigate = useNavigate();
@@ -69,11 +70,8 @@ export function Topbar() {
 
   const userInitial = userName.charAt(0).toUpperCase();
 
-  const notifications = [
-    { id: 1, text: "Novo investidor interessado", time: "5 min" },
-    { id: 2, text: "Pagamento pendente para João Silva", time: "1 hora" },
-    { id: 3, text: "Nova mensagem recebida", time: "3 horas" },
-  ];
+  const { notifications, clearAll, markAsRead } = useNotifications();
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16 px-6 bg-white/70 dark:bg-[#0F1829]/95 backdrop-blur-md border-b border-white/30 dark:border-[#1A2438] flex items-center justify-between shadow-sm select-none transition-colors duration-300">
@@ -122,9 +120,11 @@ export function Topbar() {
             <span className="material-symbols-outlined text-[22px]">
               notifications
             </span>
-            <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#DC2626] text-white text-[8px] font-bold rounded-full flex items-center justify-center animate-pulse">
-              3
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-[#DC2626] text-white text-[8px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                {unreadCount}
+              </span>
+            )}
           </button>
 
           {/* Painel de Notificações Dropdown */}
@@ -134,29 +134,38 @@ export function Topbar() {
                 <span className="font-bold text-xs text-gray-800 dark:text-gray-200">
                   Notificações
                 </span>
-                <span className="text-[10px] text-blue-600 cursor-pointer hover:underline">
-                  Limpar
-                </span>
+                {notifications.length > 0 && (
+                  <button onClick={() => clearAll.mutate()} className="text-[10px] text-blue-600 hover:underline">
+                    Limpar
+                  </button>
+                )}
               </div>
               <div className="max-h-60 overflow-y-auto">
-                {notifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    className="px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-[#0F1829]/50 flex gap-2 border-b border-white/10 dark:border-[#374151]/30 last:border-0 cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-sm text-blue-500 dark:text-blue-400 mt-0.5">
-                      info
-                    </span>
-                    <div>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 leading-normal">
-                        {notif.text}
-                      </p>
-                      <span className="text-[9px] text-gray-400 mt-1 block">
-                        {notif.time} atrás
-                      </span>
-                    </div>
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-gray-500 dark:text-gray-400 text-xs">
+                    Nenhuma notificação no momento.
                   </div>
-                ))}
+                ) : (
+                  notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      onClick={() => !notif.is_read && markAsRead.mutate(notif.id)}
+                      className={`px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-[#0F1829]/50 flex gap-2 border-b border-white/10 dark:border-[#374151]/30 last:border-0 cursor-pointer transition ${notif.is_read ? 'opacity-60' : 'bg-blue-50/50 dark:bg-blue-900/10'}`}
+                    >
+                      <span className="material-symbols-outlined text-sm text-blue-500 dark:text-blue-400 mt-0.5">
+                        {notif.type === 'message' ? 'chat' : notif.type === 'payment' ? 'payments' : 'info'}
+                      </span>
+                      <div>
+                        <p className={`text-xs ${notif.is_read ? 'text-gray-600 dark:text-gray-400' : 'text-gray-800 dark:text-gray-200 font-semibold'} leading-normal`}>
+                          {notif.text || notif.content || notif.title}
+                        </p>
+                        <span className="text-[9px] text-gray-400 mt-1 block">
+                          {new Date(notif.created_at).toLocaleDateString()} {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}

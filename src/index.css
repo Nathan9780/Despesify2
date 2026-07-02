@@ -5,22 +5,27 @@
 
 @layer base {
   :root {
-    --color-primary: #359eab;
-    --color-primary-light: #4fb5c2;
-    --color-primary-dark: #2a7d87;
-    --color-background: #e5e7eb;
+    --color-primary: #2E8F9F;
+    --color-primary-light: #47b4c4;
+    --color-primary-dark: #216f7c;
+    --color-primary-ultra-light: #e6f4f6;
+    --color-background: #f8fafc;
     --color-surface: #ffffff;
     --color-text: #1f2937;
-    --color-text-secondary: #6b7280;
-    --color-border: #d1d5db;
+    --color-text-secondary: #4a5568;
+    --color-border: #e2e8f0;
   }
 
   .dark {
-    --color-background: #0f1829;
-    --color-surface: #1a2438;
-    --color-text: #e5e7eb;
-    --color-text-secondary: #9ca3af;
-    --color-border: #374151;
+    --color-primary: #237288;
+    --color-primary-light: #2fa0bd;
+    --color-primary-dark: #195768;
+    --color-primary-ultra-light: #162a35;
+    --color-background: #192238;
+    --color-surface: #222d4a;
+    --color-text: #ffffff;
+    --color-text-secondary: #cbd5e1;
+    --color-border: #2e3a59;
   }
 
   body {
@@ -31,6 +36,47 @@
       color 0.3s ease;
     font-family: "Manrope", sans-serif;
   }
+
+  /* Override classes estáticas para funcionar dinamicamente com o tema */
+  .bg-white {
+    background-color: var(--color-surface) !important;
+  }
+  .bg-gray-50 {
+    background-color: var(--color-background) !important;
+  }
+
+  /* Ajuste dinâmico de cores de texto fixas no dark mode */
+  .dark .text-gray-900,
+  .dark .text-gray-800,
+  .dark .text-gray-700,
+  .dark .text-gray-600 {
+    color: #ffffff !important;
+  }
+  
+  .dark .text-gray-500,
+  .dark .text-gray-400 {
+    color: #e2e8f0 !important;
+  }
+
+  /* Fix input, select, textarea visibility in dark mode */
+  .dark input, .dark select, .dark textarea {
+    background-color: var(--color-surface);
+    color: #ffffff !important;
+    border-color: var(--color-border);
+  }
+  
+  .dark input::placeholder, .dark textarea::placeholder {
+    color: #cbd5e1 !important;
+  }
+
+  /* Suporte para opacidade do Tailwind com bg-white/X em modo escuro */
+  .dark .bg-white\/95 { background-color: rgba(34, 45, 74, 0.95) !important; }
+  .dark .bg-white\/80 { background-color: rgba(34, 45, 74, 0.8) !important; }
+  .dark .bg-white\/60 { background-color: rgba(34, 45, 74, 0.6) !important; }
+  .dark .bg-white\/50 { background-color: rgba(34, 45, 74, 0.5) !important; }
+  .dark .bg-white\/30 { background-color: rgba(34, 45, 74, 0.3) !important; }
+  .dark .bg-white\/20 { background-color: rgba(34, 45, 74, 0.2) !important; }
+  .dark .bg-white\/10 { background-color: rgba(34, 45, 74, 0.1) !important; }
 
   ::-webkit-scrollbar {
     width: 6px;

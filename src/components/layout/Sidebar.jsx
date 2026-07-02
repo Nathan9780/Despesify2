@@ -53,9 +53,9 @@ export function Sidebar() {
       {/* Brand logo & active user profile */}
       <div className="px-lateral_padding mb-6 flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <Logo variant="icon" className="w-10 h-10 shadow-sm" imgClassName="w-10 h-10" />
+          <Logo variant="icon" className="w-16 h-16 shadow-sm" imgClassName="w-16 h-16" />
           <div>
-            <h1 className="font-title text-title text-on-secondary text-lg leading-tight">
+            <h1 className="font-title text-title text-on-secondary text-xl leading-tight">
               Despesify 2
             </h1>
             <p className="font-label text-[10px] text-on-secondary opacity-70">

@@ -1,7 +1,7 @@
 // src/pages/Login.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Logo } from "../ui/Logo";
+import { Logo } from "../components/layout/ui/Logo";
 import { supabase } from "../lib/supabase";
 
 export function Login() {
@@ -11,6 +11,59 @@ export function Login() {
   const [error, setError] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Escuta mudanças no estado de autenticação (como retorno de OAuth do Google)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setIsLoading(true);
+        const sbUser = session.user;
+        
+        // 1. Procurar se o usuário já existe na lista simulada do localStorage
+        const usersStr = localStorage.getItem("users");
+        const users = usersStr ? JSON.parse(usersStr) : [];
+        const existingUser = users.find(u => u.email.toLowerCase() === sbUser.email.toLowerCase());
+        
+        if (existingUser) {
+          // Se já existe, atualiza o currentUser no localStorage com os dados existentes (incluindo o plano)
+          const mergedUser = {
+            ...existingUser,
+            id: sbUser.id,
+            email: sbUser.email,
+            name: existingUser.name || sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email.split('@')[0],
+          };
+          localStorage.setItem("currentUser", JSON.stringify(mergedUser));
+          
+          if (!mergedUser.plan) {
+            navigate("/select-plan");
+          } else {
+            navigate("/dashboard");
+          }
+        } else {
+          // Se não existe, cria um novo perfil de usuário
+          const newUser = {
+            id: sbUser.id,
+            email: sbUser.email,
+            name: sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email.split('@')[0],
+            phone: sbUser.user_metadata?.phone || "",
+            state: "",
+            city: "",
+            cpf: "",
+            plan: null, // Será escolhido na tela de seleção de plano
+          };
+          users.push(newUser);
+          localStorage.setItem("users", JSON.stringify(users));
+          localStorage.setItem("currentUser", JSON.stringify(newUser));
+          navigate("/select-plan");
+        }
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

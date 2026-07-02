@@ -15,6 +15,9 @@ export function Messages() {
   const [filterType, setFilterType] = useState("all");
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showProposal, setShowProposal] = useState(false);
+  const [showNewConversation, setShowNewConversation] = useState(false);
+  const [newConvName, setNewConvName] = useState("");
+  const [newConvType, setNewConvType] = useState("default");
 
   const messagesEndRef = useRef(null);
 
@@ -91,6 +94,15 @@ export function Messages() {
       content: newMessage,
     });
     setNewMessage("");
+  };
+
+  const handleCreateConversation = (e) => {
+    e.preventDefault();
+    if (!newConvName.trim()) return;
+    alert(`Nova conversa com ${newConvName} iniciada!`);
+    setShowNewConversation(false);
+    setNewConvName("");
+    setNewConvType("default");
   };
 
   // Marcar mensagens como lidas ao abrir conversa
@@ -229,7 +241,7 @@ export function Messages() {
             Comunique-se com investidores, fornecedores e equipe.
           </p>
         </div>
-        <button className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0">
+        <button onClick={() => setShowNewConversation(true)} className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0">
           <span className="material-symbols-outlined text-lg">edit</span>
           Nova Conversa
         </button>
@@ -744,6 +756,52 @@ export function Messages() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Nova Conversa */}
+      {showNewConversation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay" onClick={() => setShowNewConversation(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">Nova Conversa</h3>
+              <button onClick={() => setShowNewConversation(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form className="space-y-4" onSubmit={handleCreateConversation}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nome do Contato</label>
+                <input
+                  type="text"
+                  value={newConvName}
+                  onChange={(e) => setNewConvName(e.target.value)}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Nome do usuário"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Tipo de Contato</label>
+                <select
+                  value={newConvType}
+                  onChange={(e) => setNewConvType(e.target.value)}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="default">Contato Padrão</option>
+                  <option value="worker">Funcionário</option>
+                  <option value="supplier">Fornecedor</option>
+                  <option value="investor">Investidor</option>
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition mt-4"
+              >
+                Iniciar Conversa
+              </button>
+            </form>
           </div>
         </div>
       )}
