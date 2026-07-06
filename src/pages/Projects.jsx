@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
+import toast from "react-hot-toast";
 
 export function Projects() {
   const navigate = useNavigate();
 
   // Dados reais do Supabase
-  const { projects, isLoading, error, deleteProject, createProject } = useProjects();
+  const { projects, isLoading, error, deleteProject, createProject, updateProject } = useProjects();
 
   // Estados para filtros e busca
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,6 +18,7 @@ export function Projects() {
 
   // Estados do Modal
   const [showModal, setShowModal] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     category: "Construção",
@@ -24,21 +26,40 @@ export function Projects() {
     budget: "",
   });
 
-  const handleSaveProject = async () => {
-    try {
-      await createProject.mutateAsync({
-        name: formData.name,
-        category: formData.category,
-        visibility: formData.visibility,
-        budget: parseFloat(formData.budget) || 0,
-      });
-      setShowModal(false);
-      setFormData({ name: "", category: "Construção", visibility: "private", budget: "" });
-    } catch (err) {
-      console.error("Erro ao criar projeto:", err);
-      alert("Erro ao criar o projeto. Verifique os dados e tente novamente.");
-    }
-  };
+const handleSaveProject = async () => {
+     try {
+       // Ensure user is authenticated
+       const { data: { user } } = await supabase.auth.getUser();
+       if (!user) {
+         toast.error("Usuário não autenticado. Faça login novamente.");
+         return;
+       }
+       const projectData = {
+         name: formData.name.trim(),
+         description: formData.description || "",
+         category: formData.category,
+         visibility: formData.visibility,
+         status: formData.status || "ativo",
+         budget: parseFloat(formData.budget) || 0,
+       };
+       if (editingProjectId) {
+         await updateProject.mutateAsync({
+           id: editingProjectId,
+           ...projectData,
+         });
+         toast.success("Projeto atualizado com sucesso!");
+       } else {
+         await createProject.mutateAsync(projectData);
+         toast.success("Projeto criado com sucesso!");
+       }
+       setShowModal(false);
+       setEditingProjectId(null);
+       setFormData({ name: "", description: "", category: "Construção", visibility: "private", status: "ativo", budget: "" });
+     } catch (err) {
+       console.error("Erro ao salvar projeto:", err);
+       toast.error("Erro ao salvar o projeto. Verifique os dados e tente novamente.");
+     }
+   };
 
   // Obter categorias únicas dos dados reais
   const categories = useMemo(() => {
@@ -266,7 +287,11 @@ export function Projects() {
             Gerencie todos os seus projetos em um único lugar.
           </p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0">
+        <button onClick={() => {
+          setEditingProjectId(null);
+          setFormData({ name: "", category: "Construção", visibility: "private", budget: "" });
+          setShowModal(true);
+        }} className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0">
           <span className="material-symbols-outlined text-lg">add</span>
           Novo Projeto
         </button>
@@ -490,7 +515,11 @@ export function Projects() {
           <p className="text-sm text-gray-500">
             Tente ajustar os filtros ou criar um novo projeto.
           </p>
-          <button onClick={() => setShowModal(true)} className="mt-4 btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+          <button onClick={() => {
+            setEditingProjectId(null);
+            setFormData({ name: "", category: "Construção", visibility: "private", budget: "" });
+            setShowModal(true);
+          }} className="mt-4 btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
             + Criar Projeto
           </button>
         </div>
@@ -592,15 +621,35 @@ export function Projects() {
                   </Link>
                   <button
                     onClick={() => {
+                      setEditingProjectId(project.id);
+                      setFormData({
+                        name: project.name,
+                        category: project.category || "Construção",
+                        visibility: project.visibility || "private",
+                        budget: project.budget || 0,
+                      });
+                      setShowModal(true);
+                    }}
+                    className="px-3 py-2 border border-blue-300 rounded-lg hover:bg-blue-50 text-sm text-blue-500"
+                    title="Editar Projeto"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => {
                       if (
                         window.confirm(
                           `Tem certeza que deseja excluir o projeto "${project.name}"?`,
                         )
                       ) {
-                        deleteProject.mutate(project.id);
+                        deleteProject.mutate(project.id, {
+                          onSuccess: () => toast.success("Projeto excluído com sucesso!"),
+                          onError: () => toast.error("Erro ao excluir o projeto.")
+                        });
                       }
                     }}
                     className="px-3 py-2 border border-red-300 rounded-lg hover:bg-red-50 text-sm text-red-500"
+                    title="Excluir Projeto"
                   >
                     🗑️
                   </button>
@@ -616,7 +665,7 @@ export function Projects() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">Novo Projeto</h3>
+              <h3 className="text-xl font-bold text-gray-800">{editingProjectId ? "Editar Projeto" : "Novo Projeto"}</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                 <span className="material-symbols-outlined">close</span>
               </button>
@@ -634,6 +683,17 @@ export function Projects() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700">Descrição</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Descrição do projeto..."
+                  rows="3"
+                  required
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Categoria</label>
                 <select
                   value={formData.category}
@@ -644,6 +704,18 @@ export function Projects() {
                   <option>Reforma</option>
                   <option>Consultoria</option>
                   <option>Design de Interiores</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="ativo">Ativo</option>
+                  <option value="pausado">Pausado</option>
+                  <option value="concluído">Concluído</option>
                 </select>
               </div>
               <div>
@@ -672,7 +744,7 @@ export function Projects() {
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition"
               >
-                Criar Projeto
+                {editingProjectId ? "Salvar Alterações" : "Criar Projeto"}
               </button>
             </form>
           </div>

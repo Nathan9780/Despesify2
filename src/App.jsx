@@ -11,10 +11,14 @@ import { Team } from "./pages/Team";
 import { Materials } from "./pages/Materials";
 import { Messages } from "./pages/Messages";
 import { Investors } from "./pages/Investors";
+import { Vitrine } from "./pages/Vitrine";
+import { WithPlan } from "./components/layout/WithPlan";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Routes>
         {/* Rotas públicas de acesso */}
         <Route path="/" element={<Landing />} />
@@ -28,7 +32,16 @@ function App() {
           <Route path="projects" element={<Projects />} />
           <Route path="team" element={<Team />} />
           <Route path="materials" element={<Materials />} />
-          <Route path="investors" element={<Investors />} />
+          <Route path="investors" element={
+            <WithPlan allowedPlans={["profissional", "investidor"]}>
+              <Investors />
+            </WithPlan>
+          } />
+          <Route path="vitrine" element={
+            <WithPlan allowedPlans={["profissional", "investidor"]}>
+              <Vitrine />
+            </WithPlan>
+          } />
           <Route path="messages" element={<Messages />} />
           <Route path="settings" element={<Settings />} />
         </Route>

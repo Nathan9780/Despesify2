@@ -35,13 +35,21 @@ export function Sidebar() {
       };
 
   const navItems = [
-    { name: "Dashboard", path: "/dashboard", icon: "dashboard" },
-    { name: "Meus Projetos", path: "/projects", icon: "folder_shared" },
-    { name: "Equipe", path: "/team", icon: "group" },
-    { name: "Materiais", path: "/materials", icon: "inventory_2" },
-    { name: "Investidores", path: "/investors", icon: "payments" },
-    { name: "Mensagens", path: "/messages", icon: "chat" },
+    { name: "Dashboard", path: "/dashboard", icon: "dashboard", restricted: [] },
+    { name: "Meus Projetos", path: "/projects", icon: "folder_shared", restricted: [] },
+    { name: "Equipe", path: "/team", icon: "group", restricted: [] },
+    { name: "Materiais", path: "/materials", icon: "inventory_2", restricted: [] },
+    { name: "Investidores", path: "/investors", icon: "payments", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal"] },
+    { name: "Vitrine", path: "/vitrine", icon: "store", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal"] },
+    { name: "Mensagens", path: "/messages", icon: "chat", restricted: [] },
   ];
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (!item.restricted || item.restricted.length === 0) return true;
+    const userPlan = (currentUser?.plan || "cidadão").toLowerCase();
+    // Exibe apenas se o plano não estiver na lista de restrições
+    return !item.restricted.includes(userPlan);
+  });
 
   const handleLogout = () => {
     localStorage.removeItem("currentUser");
@@ -88,7 +96,7 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1 flex flex-col gap-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link

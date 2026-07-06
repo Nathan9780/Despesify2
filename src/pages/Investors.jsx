@@ -4,6 +4,8 @@ import { useInvestors } from "../hooks/useInvestors";
 import { useProposals } from "../hooks/useProposals";
 import { usePublicProjects } from "../hooks/usePublicProjects";
 import { useDashboard } from "../hooks/useDashboard";
+import { useInvestments } from "../hooks/useInvestments";
+import toast from "react-hot-toast";
 
 export function Investors() {
   // Dados reais com cache otimizado (React Query já faz cache)
@@ -27,6 +29,18 @@ export function Investors() {
     isLoading: dashboardLoading,
     error: dashboardError,
   } = useDashboard();
+
+  const { balance, addBalance, investments: myInvestments } = useInvestments();
+  const [showAddBalance, setShowAddBalance] = useState(false);
+  const [balanceAmount, setBalanceAmount] = useState("");
+
+  const handleAddBalance = (e) => {
+    e.preventDefault();
+    if (!balanceAmount || parseFloat(balanceAmount) <= 0) return;
+    addBalance(parseFloat(balanceAmount));
+    setBalanceAmount("");
+    setShowAddBalance(false);
+  };
 
   // Oportunidades (notificações) - dados estáticos
   const opportunities = useMemo(
@@ -275,13 +289,17 @@ export function Investors() {
           </p>
         </div>
         <div className="flex gap-2 mt-3 sm:mt-0">
+          <button onClick={() => setShowAddBalance(true)} className="btn-outline-glow px-4 py-2 border border-green-300 text-green-600 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-green-50">
+            <span className="material-symbols-outlined text-lg">add_circle</span>
+            Adicionar Saldo
+          </button>
           <button className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <span className="material-symbols-outlined text-lg">
               person_add
             </span>
             Novo Investidor
           </button>
-          <Link to="/investors/vitrine">
+          <Link to="/vitrine">
             <button className="btn-outline-glow px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50">
               <span className="material-symbols-outlined text-lg">public</span>
               Vitrine
@@ -295,6 +313,15 @@ export function Investors() {
         className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-fade-up"
         style={{ animationDelay: "0.10s" }}
       >
+        <div className="glass-card rounded-xl p-4 hover-lift">
+          <p className="text-xs text-gray-500 flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
+            Meu Saldo
+          </p>
+          <p className="text-xl font-bold text-blue-600">
+            R$ {balance.toLocaleString()}
+          </p>
+        </div>
         <div className="glass-card rounded-xl p-4 hover-lift">
           <p className="text-xs text-gray-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">payments</span>
@@ -741,6 +768,42 @@ export function Investors() {
           ))}
         </div>
       </div>
+
+      {/* Modal Adicionar Saldo */}
+      {showAddBalance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowAddBalance(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">Adicionar Saldo</h3>
+              <button onClick={() => setShowAddBalance(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <form className="space-y-4" onSubmit={handleAddBalance}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                <input
+                  type="number"
+                  value={balanceAmount}
+                  onChange={(e) => setBalanceAmount(e.target.value)}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  placeholder="Ex: 10000"
+                  min="1"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition"
+              >
+                Confirmar
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useMaterials } from "../hooks/useMaterials";
+import { useGooglePlaces } from "../hooks/useGooglePlaces";
 import { useTheme } from "../contexts/ThemeContext";
+import { GoogleMap, Marker } from "@react-google-maps/api";
 
 export function Materials() {
   const { theme } = useTheme();
@@ -36,6 +38,36 @@ export function Materials() {
     notes: "",
     project_impact: 0,
   });
+
+  const { isLoaded, loadError, places, loading: placesLoading, error: placesError, searchPlaces } = useGooglePlaces();
+  const [mapInstance, setMapInstance] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+
+  // Solicitar localização e buscar fornecedores
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.warn("Erro ao obter localização, usando padrão (BH)", error);
+          setUserLocation({ lat: -19.916681, lng: -43.934493 });
+        }
+      );
+    } else {
+      setUserLocation({ lat: -19.916681, lng: -43.934493 });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mapInstance && userLocation && places.length === 0 && !placesLoading) {
+      searchPlaces(mapInstance, userLocation);
+    }
+  }, [mapInstance, userLocation, searchPlaces]);
 
   // Memos (mesmos do código anterior)
   const categories = useMemo(() => {
@@ -85,27 +117,6 @@ export function Materials() {
       .size;
     return { total, stockValue, lowStock, suppliers };
   }, [materials]);
-
-  const nearbySuppliers = [
-    {
-      name: "Casa do Cimento",
-      distance: 2.4,
-      rating: 4.8,
-      phone: "(31) 99999-1111",
-    },
-    {
-      name: "Depósito Central",
-      distance: 3.1,
-      rating: 4.5,
-      phone: "(31) 99999-2222",
-    },
-    {
-      name: "Constrular",
-      distance: 5.6,
-      rating: 4.2,
-      phone: "(31) 99999-3333",
-    },
-  ];
 
   const statusConfig = {
     available: {
@@ -579,44 +590,71 @@ export function Materials() {
               Fornecedores Próximos
             </h3>
 
-            <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-tertiary/5 dark:from-primary/10 dark:via-secondary/10 rounded-xl p-4 mb-3 relative h-40 border border-[var(--color-border)]">
-              <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="material-symbols-outlined text-4xl text-primary/50">
-                  map
-                </span>
-                <span className="text-xs text-[var(--color-text-secondary)] mt-1">
-                  📍 Google Maps (simulado)
-                </span>
-                <div className="absolute top-1/4 left-1/3 w-3 h-3 bg-primary rounded-full map-dot border-2 border-white shadow-lg" />
-                <div
-                  className="absolute top-2/3 left-2/3 w-3 h-3 bg-primary rounded-full map-dot border-2 border-white shadow-lg"
-                  style={{ animationDelay: "0.5s" }}
-                />
-                <div
-                  className="absolute bottom-1/3 right-1/4 w-2.5 h-2.5 bg-green-500 rounded-full map-dot border-2 border-white shadow-lg"
-                  style={{ animationDelay: "1s" }}
-                />
-              </div>
+            <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-tertiary/5 dark:from-primary/10 dark:via-secondary/10 rounded-xl mb-3 relative h-64 border border-[var(--color-border)] overflow-hidden">
+              {isLoaded && userLocation ? (
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={userLocation}
+                  zoom={13}
+                  onLoad={(map) => setMapInstance(map)}
+                  options={{ disableDefaultUI: false }}
+                >
+                  {/* Marcador do usuário */}
+                  <Marker
+                    position={userLocation}
+                    icon={{
+                      url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                    }}
+                    title="Você está aqui"
+                  />
+                  
+                  {/* Marcadores dos fornecedores encontrados */}
+                  {places.map((place) => (
+                    <Marker
+                      key={place.id}
+                      position={{ lat: place.lat, lng: place.lng }}
+                      title={place.name}
+                    />
+                  ))}
+                </GoogleMap>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className="material-symbols-outlined text-4xl text-primary/50">
+                    {loadError ? 'error' : 'map'}
+                  </span>
+                  <span className="text-xs text-[var(--color-text-secondary)] mt-1">
+                    {loadError ? 'Erro ao carregar mapa' : 'Carregando mapa...'}
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-2">
-              {nearbySuppliers.map((sup, idx) => (
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {placesLoading && <p className="text-xs text-center py-2 text-[var(--color-text-secondary)]">Buscando fornecedores...</p>}
+              {placesError && <p className="text-xs text-center py-2 text-red-500">{placesError.message}</p>}
+              {!placesLoading && places.length === 0 && !placesError && (
+                <p className="text-xs text-center py-2 text-[var(--color-text-secondary)]">Nenhum fornecedor encontrado.</p>
+              )}
+              {places.slice(0, 5).map((sup, idx) => (
                 <div
-                  key={idx}
+                  key={sup.id || idx}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
                     {sup.name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-[var(--color-text)]">
+                    <p className="text-xs font-medium text-[var(--color-text)] truncate" title={sup.name}>
                       {sup.name}
                     </p>
                     <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-secondary)]">
                       <span>📍 {sup.distance} km</span>
-                      <span>⭐ {sup.rating}</span>
+                      {sup.rating > 0 && <span>⭐ {sup.rating} ({sup.user_ratings_total})</span>}
                     </div>
                   </div>
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${sup.lat},${sup.lng}&query_place_id=${sup.id}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 shrink-0" title="Ver no Maps">
+                    <span className="material-symbols-outlined text-sm block">map</span>
+                  </a>
                 </div>
               ))}
             </div>
