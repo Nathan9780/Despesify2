@@ -4,6 +4,7 @@ import { useMaterials } from "../hooks/useMaterials";
 import { useGooglePlaces } from "../hooks/useGooglePlaces";
 import { useTheme } from "../contexts/ThemeContext";
 import { GoogleMap, Marker } from "@react-google-maps/api";
+import toast from "react-hot-toast";
 
 export function Materials() {
   const { theme } = useTheme();
@@ -137,16 +138,76 @@ export function Materials() {
 
   // Handlers (mesmos do código anterior)
   const handleOpenModal = (material = null) => {
-    /* ... */
+    setEditingMaterial(material);
+    if (material) {
+      setFormData({
+        name: material.name || "",
+        category: material.category || "Construção",
+        quantity: material.quantity || 0,
+        minimum_quantity: material.minimum_quantity || 0,
+        unit_price: material.unit_price || 0,
+        unit: material.unit || "un",
+        supplier: material.supplier || "",
+        project_impact: material.project_impact || 0,
+        notes: material.notes || "",
+      });
+    } else {
+      setFormData({
+        name: "",
+        category: "Construção",
+        quantity: 0,
+        minimum_quantity: 0,
+        unit_price: 0,
+        unit: "un",
+        supplier: "",
+        project_impact: 0,
+        notes: "",
+      });
+    }
+    setShowModal(true);
   };
+  
   const handleSave = async () => {
-    /* ... */
+    try {
+      if (editingMaterial) {
+        await updateMaterial.mutateAsync({
+          id: editingMaterial.id,
+          ...formData,
+        });
+        toast.success("Material atualizado!");
+      } else {
+        await createMaterial.mutateAsync(formData);
+        toast.success("Material adicionado!");
+      }
+      setShowModal(false);
+    } catch (err) {
+      toast.error(`Erro: ${err.message}`);
+    }
   };
+
   const handleDelete = async (id) => {
-    /* ... */
+    if (window.confirm("Deseja mesmo excluir este material?")) {
+      try {
+        await deleteMaterial.mutateAsync(id);
+        toast.success("Material excluído!");
+      } catch (err) {
+        toast.error(`Erro: ${err.message}`);
+      }
+    }
   };
+
   const handleStockChange = async (id, type, quantity) => {
-    /* ... */
+    try {
+      if (type === "add") {
+        await addStock.mutateAsync({ id, quantity });
+        toast.success("Estoque adicionado!");
+      } else {
+        await removeStock.mutateAsync({ id, quantity });
+        toast.success("Estoque removido!");
+      }
+    } catch (err) {
+      toast.error(`Erro: ${err.message}`);
+    }
   };
 
   // Loading

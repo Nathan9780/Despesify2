@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
 import toast from "react-hot-toast";
+import { supabase } from "../lib/supabase";
 
 export function Projects() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Dados reais do Supabase
   const { projects, isLoading, error, deleteProject, createProject, updateProject } = useProjects();
@@ -25,6 +27,14 @@ export function Projects() {
     visibility: "private",
     budget: "",
   });
+
+  useEffect(() => {
+    if (location.state?.openNewProjectModal) {
+      setShowModal(true);
+      // Optional: Clear state to avoid reopening on reload
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
 const handleSaveProject = async () => {
      try {
@@ -57,7 +67,7 @@ const handleSaveProject = async () => {
        setFormData({ name: "", description: "", category: "Construção", visibility: "private", status: "ativo", budget: "" });
      } catch (err) {
        console.error("Erro ao salvar projeto:", err);
-       toast.error("Erro ao salvar o projeto. Verifique os dados e tente novamente.");
+       toast.error(`Erro ao salvar o projeto: ${err.message || "Verifique os dados e tente novamente."}`);
      }
    };
 

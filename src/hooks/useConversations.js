@@ -40,7 +40,7 @@ export const useConversations = () => {
   });
 
   const createConversation = useMutation({
-    mutationFn: async ({ participantId, projectId }) => {
+    mutationFn: async ({ name, type, participantId, projectId }) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -49,7 +49,9 @@ export const useConversations = () => {
         .insert([
           {
             user_id: user.id,
-            participant_id: participantId,
+            name: name,
+            type: type || "default",
+            participant_id: participantId || null,
             project_id: projectId || null,
           },
         ])

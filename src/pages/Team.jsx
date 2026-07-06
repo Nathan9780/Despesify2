@@ -32,6 +32,7 @@ export function Team() {
     phone: "",
     email: "",
     type: "employee",
+    workDays: ["Seg", "Ter", "Qua", "Qui", "Sex"],
   });
 
   // Obter funções únicas para o filtro
@@ -82,6 +83,7 @@ export function Team() {
       phone: "",
       email: "",
       type: "employee",
+      workDays: ["Seg", "Ter", "Qua", "Qui", "Sex"],
     });
     setShowModal(true);
   };
@@ -98,6 +100,7 @@ export function Team() {
       phone: member.phone || "",
       email: member.email || "",
       type: member.type || "employee",
+      workDays: member.work_days || ["Seg", "Ter", "Qua", "Qui", "Sex"],
     });
     setShowModal(true);
   };
@@ -113,6 +116,7 @@ export function Team() {
       phone: formData.phone,
       email: formData.email,
       type: formData.type,
+      work_days: formData.workDays,
       status: "pending",
     };
 
@@ -381,6 +385,12 @@ export function Team() {
                       {member.start_date ? new Date(member.start_date).toLocaleDateString("pt-BR") : "N/A"}
                     </p>
                   </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500">🗓️ Dias</span>
+                    <p className="font-medium text-xs">
+                      {member.work_days?.length ? member.work_days.join(", ") : "N/A"}
+                    </p>
+                  </div>
                   <div>
                     <span className="text-gray-500">📱 Contato</span>
                     <p className="font-medium">{member.phone || "N/A"}</p>
@@ -559,6 +569,28 @@ export function Team() {
                   <option value="admin">Administrador</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dias Trabalhados</label>
+                <div className="flex flex-wrap gap-2">
+                  {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"].map(day => (
+                    <label key={day} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border cursor-pointer hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        checked={formData.workDays?.includes(day)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({ ...formData, workDays: [...(formData.workDays || []), day] });
+                          } else {
+                            setFormData({ ...formData, workDays: (formData.workDays || []).filter(d => d !== day) });
+                          }
+                        }}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm">{day}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <button
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition"
@@ -602,6 +634,7 @@ export function Team() {
                 <div className="mt-2 space-y-1 text-sm">
                   <p><span className="text-gray-500">Telefone:</span> {selectedMember.phone || "N/A"}</p>
                   <p><span className="text-gray-500">Email:</span> {selectedMember.email || "N/A"}</p>
+                  <p><span className="text-gray-500">Dias Trabalhados:</span> {selectedMember.work_days?.length ? selectedMember.work_days.join(", ") : "N/A"}</p>
                   <p>
                     <span className="text-gray-500">Data de Início:</span>{" "}
                     {selectedMember.start_date ? new Date(selectedMember.start_date).toLocaleDateString("pt-BR") : "N/A"}

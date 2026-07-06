@@ -16,66 +16,63 @@ export const useGooglePlaces = () => {
 
   const searchPlaces = useCallback(
     (mapInstance, location, radius = 5000) => {
-      if (!isLoaded || loadError) {
-        setError(loadError || new Error("Google Maps API não carregada."));
-        return;
-      }
-      
-      if (!mapInstance) {
-        setError(new Error("Instância do mapa não fornecida."));
-        return;
-      }
-
       setLoading(true);
       setError(null);
 
-      const service = new window.google.maps.places.PlacesService(mapInstance);
+      // Simulando uma requisição de API de 1 segundo
+      setTimeout(() => {
+        const mockResults = [
+          {
+            id: "mock-1",
+            name: "Depósito de Materiais Silva",
+            address: "Av. Principal, 1000 - Centro",
+            rating: 4.8,
+            user_ratings_total: 124,
+            distance: "1.2",
+            lat: location.lat + 0.01,
+            lng: location.lng + 0.01,
+            isOpen: true,
+          },
+          {
+            id: "mock-2",
+            name: "Construmax Materiais",
+            address: "Rua das Flores, 45",
+            rating: 4.2,
+            user_ratings_total: 89,
+            distance: "3.5",
+            lat: location.lat - 0.02,
+            lng: location.lng + 0.01,
+            isOpen: true,
+          },
+          {
+            id: "mock-3",
+            name: "Ferragens e Cia",
+            address: "Av. Industrial, 500",
+            rating: 3.9,
+            user_ratings_total: 45,
+            distance: "5.1",
+            lat: location.lat + 0.03,
+            lng: location.lng - 0.02,
+            isOpen: false,
+          },
+          {
+            id: "mock-4",
+            name: "Tijolo & Cimento Express",
+            address: "Rua do Comércio, 120",
+            rating: 4.9,
+            user_ratings_total: 312,
+            distance: "2.0",
+            lat: location.lat - 0.01,
+            lng: location.lng - 0.01,
+            isOpen: true,
+          },
+        ];
 
-      const request = {
-        location: new window.google.maps.LatLng(location.lat, location.lng),
-        radius,
-        keyword: "material de construção",
-      };
-
-      service.nearbySearch(request, (results, status) => {
+        setPlaces(mockResults.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance)));
         setLoading(false);
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
-          // Processar os resultados para adicionar a distância estimada
-          const processedResults = results.map((place) => {
-            // Calcular distância em linha reta apenas para estimativa (Haversine formula)
-            const R = 6371; // Raio da Terra em km
-            const dLat = (place.geometry.location.lat() - location.lat) * (Math.PI / 180);
-            const dLon = (place.geometry.location.lng() - location.lng) * (Math.PI / 180);
-            const a = 
-              Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(location.lat * (Math.PI/180)) * Math.cos(place.geometry.location.lat() * (Math.PI/180)) * 
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-            const distance = R * c;
-
-            return {
-              id: place.place_id,
-              name: place.name,
-              address: place.vicinity,
-              rating: place.rating || 0,
-              user_ratings_total: place.user_ratings_total || 0,
-              distance: distance.toFixed(1),
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng(),
-              isOpen: place.opening_hours?.isOpen() || false,
-            };
-          });
-          
-          // Ordenar por distância
-          processedResults.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
-          setPlaces(processedResults);
-        } else {
-          setError(new Error(`Erro na busca: ${status}`));
-          setPlaces([]);
-        }
-      });
+      }, 1000);
     },
-    [isLoaded, loadError]
+    []
   );
 
   return {

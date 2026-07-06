@@ -12,6 +12,7 @@ import { Materials } from "./pages/Materials";
 import { Messages } from "./pages/Messages";
 import { Investors } from "./pages/Investors";
 import { Vitrine } from "./pages/Vitrine";
+import { Tasks } from "./pages/Tasks";
 import { WithPlan } from "./components/layout/WithPlan";
 import { Toaster } from "react-hot-toast";
 
@@ -40,6 +41,11 @@ function App() {
           <Route path="vitrine" element={
             <WithPlan allowedPlans={["profissional", "investidor"]}>
               <Vitrine />
+            </WithPlan>
+          } />
+          <Route path="tasks" element={
+            <WithPlan allowedPlans={["empresarial", "enterprise"]}>
+              <Tasks />
             </WithPlan>
           } />
           <Route path="messages" element={<Messages />} />

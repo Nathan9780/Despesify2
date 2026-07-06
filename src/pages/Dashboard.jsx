@@ -119,7 +119,7 @@ export function Dashboard() {
             Resumo dos seus projetos e atividades
           </p>
         </div>
-        <Link to="/projects/new">
+        <Link to="/projects" state={{ openNewProjectModal: true }}>
           <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <span className="material-symbols-outlined text-lg">add</span>
             Novo Projeto
@@ -312,7 +312,7 @@ export function Dashboard() {
             ) : (
               <div className="col-span-2 text-center py-8 text-gray-500">
                 <p>Nenhum projeto cadastrado ainda.</p>
-                <Link to="/projects/new" className="text-blue-600 hover:underline">Criar seu primeiro projeto</Link>
+                <Link to="/projects" state={{ openNewProjectModal: true }} className="text-blue-600 hover:underline">Criar seu primeiro projeto</Link>
               </div>
             )}
           </div>

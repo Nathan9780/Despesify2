@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useConversations } from "../hooks/useConversations";
 import { useMessages } from "../hooks/useMessages";
+import toast from "react-hot-toast";
 
 export function Messages() {
   const {
     conversations,
     isLoading: conversationsLoading,
     error: conversationsError,
+    createConversation,
   } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [newMessage, setNewMessage] = useState("");
@@ -96,13 +98,22 @@ export function Messages() {
     setNewMessage("");
   };
 
-  const handleCreateConversation = (e) => {
+  const handleCreateConversation = async (e) => {
     e.preventDefault();
     if (!newConvName.trim()) return;
-    alert(`Nova conversa com ${newConvName} iniciada!`);
-    setShowNewConversation(false);
-    setNewConvName("");
-    setNewConvType("default");
+    try {
+      const newConv = await createConversation.mutateAsync({ 
+        name: newConvName, 
+        type: newConvType 
+      });
+      setSelectedConversation(newConv);
+      toast.success(`Conversa com ${newConvName} iniciada!`);
+      setShowNewConversation(false);
+      setNewConvName("");
+      setNewConvType("default");
+    } catch (err) {
+      toast.error(`Erro ao criar conversa: ${err.message}`);
+    }
   };
 
   // Marcar mensagens como lidas ao abrir conversa

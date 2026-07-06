@@ -37,6 +37,7 @@ export function Sidebar() {
   const navItems = [
     { name: "Dashboard", path: "/dashboard", icon: "dashboard", restricted: [] },
     { name: "Meus Projetos", path: "/projects", icon: "folder_shared", restricted: [] },
+    { name: "Tarefas", path: "/tasks", icon: "task_alt", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal", "profissional"] },
     { name: "Equipe", path: "/team", icon: "group", restricted: [] },
     { name: "Materiais", path: "/materials", icon: "inventory_2", restricted: [] },
     { name: "Investidores", path: "/investors", icon: "payments", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal"] },
@@ -60,16 +61,8 @@ export function Sidebar() {
     <nav className="w-[260px] h-screen fixed left-0 top-0 bg-secondary shadow-sm flex flex-col py-4 z-20">
       {/* Brand logo & active user profile */}
       <div className="px-lateral_padding mb-6 flex flex-col gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center">
           <Logo variant="icon" className="w-16 h-16 shadow-sm" imgClassName="w-16 h-16" />
-          <div>
-            <h1 className="font-title text-title text-on-secondary text-xl leading-tight">
-              Despesify 2
-            </h1>
-            <p className="font-label text-[10px] text-on-secondary opacity-70">
-              Unified Management
-            </p>
-          </div>
         </div>
 
         {/* User Card */}

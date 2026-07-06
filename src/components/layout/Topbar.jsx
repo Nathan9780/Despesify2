@@ -53,14 +53,18 @@ export function Topbar() {
     navigate("/login");
   };
 
+  const currentPlan = user?.user_metadata?.plan?.toLowerCase() || "citizen";
+
   const navItems = [
-    { to: "/dashboard", label: "Dashboard", icon: "dashboard" },
-    { to: "/projects", label: "Projetos", icon: "folder_open" },
-    { to: "/team", label: "Equipe", icon: "group" },
-    { to: "/materials", label: "Materiais", icon: "inventory_2" },
-    { to: "/investors", label: "Investidores", icon: "payments" },
-    { to: "/messages", label: "Mensagens", icon: "chat" },
-  ];
+    { to: "/dashboard", label: "Dashboard", icon: "dashboard", restricted: [] },
+    { to: "/projects", label: "Projetos", icon: "folder_open", restricted: [] },
+    { to: "/tasks", label: "Tarefas", icon: "task_alt", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal", "profissional"] },
+    { to: "/team", label: "Equipe", icon: "group", restricted: [] },
+    { to: "/materials", label: "Materiais", icon: "inventory_2", restricted: [] },
+    { to: "/investors", label: "Investidores", icon: "payments", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal"] },
+    { to: "/vitrine", label: "Vitrine", icon: "store", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal"] },
+    { to: "/messages", label: "Mensagens", icon: "chat", restricted: [] },
+  ].filter(item => !item.restricted.includes(currentPlan));
 
   const userName =
     user?.user_metadata?.full_name ||
@@ -75,17 +79,14 @@ export function Topbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16 px-6 bg-white/70 dark:bg-[#0F1829]/95 backdrop-blur-md border-b border-white/30 dark:border-[#1A2438] flex items-center justify-between shadow-sm select-none transition-colors duration-300">
-      {/* Esquerda: Logo */}
-      <Link to="/dashboard" className="flex items-center gap-2">
-        <Logo variant="icon" className="h-8 w-8" />
-        <span className="font-bold text-lg hidden sm:inline font-body">
-          <span className="text-gray-300 dark:text-gray-500">espes</span>
-          <span className="text-[#4bc9c4]">ify</span>
-        </span>
-      </Link>
+      {/* Esquerda: Espaço Vazio (opcional se não quiser logo na esquerda) */}
+      <div className="w-8"></div>
 
-      {/* Centro: Links de Navegação (Desktop) */}
-      <nav className="hidden md:flex items-center gap-2 h-full">
+      {/* Centro: Links de Navegação com Logo */}
+      <nav className="hidden md:flex items-center gap-4 h-full">
+        <Link to="/dashboard" className="flex items-center">
+          <Logo variant="icon" className="h-20 w-auto" imgClassName="h-20 w-auto" />
+        </Link>
         {navItems.map((item) => (
           <NavLink
             key={item.to}
