@@ -34,23 +34,38 @@ export function Sidebar() {
         badge: "bg-surface-variant text-on-surface-variant",
       };
 
-  const navItems = [
-    { name: "Dashboard", path: "/dashboard", icon: "dashboard", restricted: [] },
-    { name: "Meus Projetos", path: "/projects", icon: "folder_shared", restricted: [] },
-    { name: "Tarefas", path: "/tasks", icon: "task_alt", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal", "profissional"] },
-    { name: "Equipe", path: "/team", icon: "group", restricted: [] },
-    { name: "Materiais", path: "/materials", icon: "inventory_2", restricted: [] },
-    { name: "Investidores", path: "/investors", icon: "payments", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal"] },
-    { name: "Vitrine", path: "/vitrine", icon: "store", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal"] },
-    { name: "Mensagens", path: "/messages", icon: "chat", restricted: [] },
-  ];
+  // Definir navItems dependendo do plano atual
+  const userPlan = (currentUser?.plan || "citizen").toLowerCase();
 
-  const visibleNavItems = navItems.filter((item) => {
-    if (!item.restricted || item.restricted.length === 0) return true;
-    const userPlan = (currentUser?.plan || "cidadão").toLowerCase();
-    // Exibe apenas se o plano não estiver na lista de restrições
-    return !item.restricted.includes(userPlan);
-  });
+  const getNavItems = () => {
+    if (userPlan === "investor") {
+      return [
+        { name: "Investir", path: "/vitrine", icon: "payments" },
+      ];
+    }
+
+    const items = [
+      { name: "Dashboard", path: "/dashboard", icon: "dashboard" },
+      { name: "Meus Projetos", path: "/projects", icon: "folder_shared" },
+      { name: "Equipe", path: "/team", icon: "group" },
+      { name: "Materiais", path: "/materials", icon: "inventory_2" },
+    ];
+
+    if (userPlan === "enterprise") {
+      items.push({ name: "Fornecedores", path: "/suppliers", icon: "local_shipping" });
+      items.push({ name: "Tarefas", path: "/tasks", icon: "task_alt" });
+      items.push({ name: "Investidores", path: "/investors", icon: "store" });
+    } else {
+      // citizen
+      items.push({ name: "Contribuinte", path: "/investors", icon: "store" });
+    }
+
+    items.push({ name: "Mensagens", path: "/messages", icon: "chat" });
+
+    return items;
+  };
+
+  const visibleNavItems = getNavItems();
 
   const handleLogout = () => {
     localStorage.removeItem("currentUser");

@@ -23,6 +23,37 @@ export const useMessages = (conversationId) => {
     staleTime: 30000,
   });
 
+  // Inscrever para atualizações em tempo real
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const channel = supabase
+      .channel(`messages_${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          queryClient.setQueryData(["messages", conversationId], (old) => {
+            if (!old) return [payload.new];
+            // Prevenir duplicatas se a mutation local já tiver inserido
+            const isDuplicate = old.some((msg) => msg.id === payload.new.id);
+            if (isDuplicate) return old;
+            return [...old, payload.new];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, queryClient]);
+
   // Enviar mensagem
   const sendMessage = useMutation({
     mutationFn: async ({ conversationId, content }) => {

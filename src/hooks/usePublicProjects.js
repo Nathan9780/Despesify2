@@ -13,11 +13,10 @@ export const usePublicProjects = () => {
       const userId = user?.id;
       let query = supabase
         .from("projects")
-        .select("*, investors:investments(count)")
+        .select("*")
         .eq("visibility", "public")
         .order("created_at", { ascending: false });
 
-      // Se o usuário estiver logado, exclui os próprios projetos
       if (userId) {
         query = query.neq("user_id", userId);
       }

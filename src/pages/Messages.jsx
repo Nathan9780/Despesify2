@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useConversations } from "../hooks/useConversations";
 import { useMessages } from "../hooks/useMessages";
 import toast from "react-hot-toast";
+import { supabase } from "../lib/supabase";
 
 export function Messages() {
   const {
@@ -20,8 +21,52 @@ export function Messages() {
   const [showNewConversation, setShowNewConversation] = useState(false);
   const [newConvName, setNewConvName] = useState("");
   const [newConvType, setNewConvType] = useState("default");
+  
+  const [profilesList, setProfilesList] = useState([]);
+  const [selectedProfileId, setSelectedProfileId] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setCurrentUserId(data.user.id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (showNewConversation && !newConvName) {
+      const fetchInitial = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, name, email, plan')
+          .limit(10);
+        if (data) setProfilesList(data);
+      };
+      fetchInitial();
+    }
+  }, [showNewConversation, newConvName]);
+
+  // Buscar usuários reais no Supabase
+  const handleSearchProfiles = async (query) => {
+    setNewConvName(query);
+    if (!query) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name, email, plan')
+        .limit(10);
+      if (data) setProfilesList(data);
+      return;
+    }
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, name, email, plan')
+      .ilike('name', `%${query}%`)
+      .limit(5);
+    if (data) setProfilesList(data);
+  };
+
+  // (Removed duplicate handleCreateConversation)
 
   // Buscar mensagens da conversa selecionada
   const {
@@ -64,7 +109,7 @@ export function Messages() {
   const unreadCount =
     conversations?.reduce((sum, c) => {
       const unread =
-        c.messages?.filter((m) => !m.is_read && m.user_id !== c.user_id)
+        c.messages?.filter((m) => !m.is_read && m.user_id !== currentUserId)
           .length || 0;
       return sum + unread;
     }, 0) || 0;
@@ -104,13 +149,15 @@ export function Messages() {
     try {
       const newConv = await createConversation.mutateAsync({ 
         name: newConvName, 
-        type: newConvType 
+        type: newConvType,
+        target_user_id: selectedProfileId
       });
       setSelectedConversation(newConv);
       toast.success(`Conversa com ${newConvName} iniciada!`);
       setShowNewConversation(false);
       setNewConvName("");
       setNewConvType("default");
+      setSelectedProfileId(null);
     } catch (err) {
       toast.error(`Erro ao criar conversa: ${err.message}`);
     }
@@ -366,7 +413,7 @@ export function Messages() {
                   const lastMessage = chat.messages?.[chat.messages.length - 1];
                   const unreadCount =
                     chat.messages?.filter(
-                      (m) => !m.is_read && m.user_id !== chat.user_id,
+                      (m) => !m.is_read && m.user_id !== currentUserId,
                     ).length || 0;
 
                   return (
@@ -409,9 +456,9 @@ export function Messages() {
                         </p>
                       </div>
                       {unreadCount > 0 && (
-                        <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-md">
                           {unreadCount}
-                        </span>
+                        </div>
                       )}
                     </div>
                   );
@@ -420,11 +467,11 @@ export function Messages() {
             </div>
           </div>
 
-          {/* Área do Chat */}
+          {/* Área Principal de Mensagens */}
           {selectedConversation ? (
-            <div className="flex-1 flex flex-col bg-white/20 backdrop-blur-sm">
+            <div className="flex-1 flex flex-col h-full bg-white relative">
               {/* Header do Chat */}
-              <div className="flex items-center justify-between p-3 border-b border-gray-200/50 bg-white/30">
+              <div className="h-16 px-6 border-b border-gray-200 flex items-center justify-between bg-white/80 backdrop-blur-sm z-10">
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[selectedConversation.type] || typeColors.default}`}
@@ -434,14 +481,14 @@ export function Messages() {
                       "?"}
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-gray-800">
+                    <h3 className="font-semibold text-gray-800">
                       {selectedConversation.name}
-                    </p>
-                    <p className="text-[10px] text-gray-500">
-                      {selectedConversation.online ? "🟢 Online" : "🔴 Offline"}{" "}
-                      •{" "}
-                      {typeLabels[selectedConversation.type] ||
-                        typeLabels.default}
+                    </h3>
+                    <p className="text-xs text-green-600 flex items-center gap-1">
+                      {selectedConversation.online && (
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                      )}
+                      {selectedConversation.online ? "Online" : ""}
                     </p>
                   </div>
                 </div>
@@ -475,46 +522,45 @@ export function Messages() {
               </div>
 
               {/* Mensagens */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
-                {messages.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                    Nenhuma mensagem ainda. Envie a primeira mensagem!
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 relative z-0">
+                {messagesLoading ? (
+                  <div className="flex justify-center p-4">
+                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  messages.map((msg) => {
-                    const isOwn = msg.user_id === selectedConversation.user_id;
+                  messages?.map((msg) => {
+                    const isMine = msg.user_id === currentUserId;
                     return (
                       <div
                         key={msg.id}
-                        className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                        className={`flex ${isMine ? "justify-end" : "justify-start"} animate-fade-up`}
+                        style={{ animationDuration: "0.3s" }}
                       >
                         <div
-                          className={`message-bubble rounded-2xl px-4 py-2 text-sm ${
-                            isOwn
-                              ? "bg-blue-600 text-white rounded-br-none"
-                              : "bg-white/80 text-gray-800 rounded-bl-none shadow-sm"
+                          className={`message-bubble p-3 rounded-2xl shadow-sm ${
+                            isMine
+                              ? "bg-blue-600 text-white rounded-tr-sm"
+                              : "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
                           }`}
                         >
-                          <p>{msg.content}</p>
+                          <p className="text-sm">{msg.content}</p>
                           <span
-                            className={`text-[10px] mt-1 block ${isOwn ? "text-blue-200" : "text-gray-400"}`}
+                            className={`text-[10px] mt-1 block text-right ${isMine ? "text-blue-100" : "text-gray-400"}`}
                           >
                             {new Date(msg.created_at).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
+                            {isMine && (
+                              <span className="material-symbols-outlined text-[10px] ml-1 align-middle">
+                                {msg.is_read ? "done_all" : "check"}
+                              </span>
+                            )}
                           </span>
                         </div>
                       </div>
                     );
                   })
-                )}
-                {sendMessage.isLoading && (
-                  <div className="flex justify-end">
-                    <div className="bg-gray-300 text-gray-500 rounded-2xl px-4 py-2 text-sm rounded-br-none animate-pulse">
-                      Enviando...
-                    </div>
-                  </div>
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -782,16 +828,35 @@ export function Messages() {
               </button>
             </div>
             <form className="space-y-4" onSubmit={handleCreateConversation}>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nome do Contato</label>
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700">Buscar Usuário</label>
                 <input
                   type="text"
                   value={newConvName}
-                  onChange={(e) => setNewConvName(e.target.value)}
+                  onChange={(e) => handleSearchProfiles(e.target.value)}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="Nome do usuário"
                   required
                 />
+                {profilesList.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                    {profilesList.map(profile => (
+                      <div 
+                        key={profile.id}
+                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                        onClick={() => {
+                          setNewConvName(profile.name);
+                          setSelectedProfileId(profile.id);
+                          setNewConvType(profile.plan === 'investor' ? 'investor' : profile.plan === 'enterprise' ? 'supplier' : 'default');
+                          setProfilesList([]);
+                        }}
+                      >
+                        <p className="text-sm font-medium text-gray-800">{profile.name}</p>
+                        <p className="text-xs text-gray-500">{profile.email}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tipo de Contato</label>

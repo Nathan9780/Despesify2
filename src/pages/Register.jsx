@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "../components/layout/ui/Logo";
+import { supabase } from "../lib/supabase";
 
 // CPF validation algorithm
 function validateCPF(cpf) {
@@ -111,7 +112,7 @@ export function Register() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
 
@@ -129,17 +130,6 @@ export function Register() {
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(formData.email)) {
         newErrors.email = "Insira um formato de e-mail válido.";
-      } else {
-        // Check if email already registered in mock DB
-        const usersStr = localStorage.getItem("users");
-        const users = usersStr ? JSON.parse(usersStr) : [];
-        const isRegistered =
-          users.some(
-            (u) => u.email.toLowerCase() === formData.email.toLowerCase(),
-          ) || formData.email.toLowerCase() === "demo@despesify.com";
-        if (isRegistered) {
-          newErrors.email = "Este e-mail já está cadastrado.";
-        }
       }
     }
 
@@ -184,30 +174,42 @@ export function Register() {
 
     setIsLoading(true);
 
-    // Save user to simulated DB
-    setTimeout(() => {
-      const usersStr = localStorage.getItem("users");
-      const users = usersStr ? JSON.parse(usersStr) : [];
-
-      const newUser = {
-        name: formData.name,
-        phone: formData.phone,
-        state: formData.state,
-        city: formData.city,
+    try {
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        birthDate: formData.birthDate,
-        cpf: formData.cpf,
-        plan: null, // selected in next step
-      };
+        options: {
+          data: {
+            name: formData.name,
+            phone: formData.phone,
+            cpf: formData.cpf,
+            plan: 'citizen',
+          }
+        }
+      });
 
+      if (error) throw error;
+
+      // retro-compatibility local
+      const newUser = {
+        id: data.user?.id,
+        name: formData.name,
+        email: formData.email,
+        plan: null,
+      };
+      
+      const usersStr = localStorage.getItem("users");
+      const users = usersStr ? JSON.parse(usersStr) : [];
       users.push(newUser);
       localStorage.setItem("users", JSON.stringify(users));
       localStorage.setItem("currentUser", JSON.stringify(newUser));
 
-      setIsLoading(false);
       navigate("/select-plan");
-    }, 1200);
+    } catch (err) {
+      setErrors({ email: "Erro ao criar conta: " + err.message });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

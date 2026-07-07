@@ -350,11 +350,11 @@ export function Landing() {
 
       {/* Floating Header com glass e glow */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-7xl z-50 glass-card rounded-2xl px-6 py-3 flex justify-between items-center shadow-lg transition-all duration-300 card-glow">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Logo
             variant="icon"
-            className="w-9 h-9 shadow-md icon-glow"
-            imgClassName="w-9 h-9"
+            className="w-12 h-12 shadow-md icon-glow"
+            imgClassName="w-12 h-12"
           />
           <div>
             <h1 className="font-title text-lg font-bold leading-none text-primary">
@@ -406,15 +406,18 @@ export function Landing() {
 
       {/* Hero Section */}
       <section className="pt-36 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center justify-center text-center min-h-[85vh] relative section-glow">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-container/20 border border-primary-container/30 mb-8 animate-pulse badge-glow">
+        <div className="flex flex-col items-center justify-center mb-6">
+          <Logo 
+            variant="icon" 
+            className="h-28 w-28 md:h-36 md:w-36 drop-shadow-2xl icon-glow" 
+            imgClassName="h-28 w-28 md:h-36 md:w-36" 
+          />
+        </div>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-container/20 border border-primary-container/30 mb-8 animate-pulse badge-glow mt-[-10px]">
           <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
           <span className="text-xs font-label text-primary font-medium tracking-wide">
             Uma Plataforma Totalmente Integrada
           </span>
-          <div className="hero-section">
-            <Logo className="h-16" />
-            {/* ... */}
-          </div>
         </div>
 
         {/* Carousel Quotes */}
@@ -842,8 +845,8 @@ export function Landing() {
             </div>
 
             {/* Enterprise Plan (Featured) */}
-            <div className="bg-inverse-surface border-2 border-primary rounded-2xl p-8 flex flex-col justify-between shadow-xl relative scale-105 z-10 hover:-translate-y-1 transition-all duration-300 text-white card-glow">
-              <span className="badge-glow absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-on-primary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-md">
+            <div className="bg-white dark:bg-inverse-surface border-2 border-primary rounded-2xl p-8 flex flex-col justify-between shadow-xl relative scale-105 z-10 hover:-translate-y-1 transition-all duration-300 card-glow">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-950 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(251,191,36,0.6)] border border-amber-300">
                 Mais Recomendado
               </span>
               <div>
@@ -857,10 +860,10 @@ export function Landing() {
                     Pessoa Jurídica
                   </span>
                 </div>
-                <h4 className="font-title text-2xl font-bold mb-2 text-white number-glow">
+                <h4 className="font-title text-2xl font-extrabold mb-2 text-gray-900 dark:text-white number-glow">
                   Plano Empresarial
                 </h4>
-                <p className="font-body text-xs text-outline-variant mb-6">
+                <p className="font-body text-xs text-gray-700 dark:text-outline-variant mb-6 font-medium">
                   Perfeito para micro, pequenas e médias empresas que necessitam
                   de rigoroso controle administrativo e operacional.
                 </p>
@@ -1085,100 +1088,112 @@ export function Landing() {
                 </span>
               </div>
 
-              {[
-                {
-                  id: "finance",
-                  label: "Finanças",
-                  icon: "account_balance_wallet",
-                  angle: "0",
-                },
-                {
-                  id: "projects",
-                  label: "Projetos",
-                  icon: "folder_shared",
-                  angle: "60",
-                },
-                { id: "teams", label: "Equipes", icon: "group", angle: "120" },
-                {
-                  id: "materials",
-                  label: "Materiais",
-                  icon: "inventory_2",
-                  angle: "180",
-                },
-                {
-                  id: "suppliers",
-                  label: "Fornecedores",
-                  icon: "local_shipping",
-                  angle: "240",
-                },
-                {
-                  id: "investors",
-                  label: "Investidores",
-                  icon: "payments",
-                  angle: "300",
-                },
-              ].map((node) => {
-                const angleRad = (node.angle * Math.PI) / 180;
-                const radius = 135;
-                const x = radius * Math.cos(angleRad);
-                const y = radius * Math.sin(angleRad);
+              <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
+                <div className="absolute inset-0 animate-[spin_40s_linear_infinite] pointer-events-auto">
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40">
+                    <defs>
+                      <linearGradient
+                        id="lineGrad"
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="100%"
+                      >
+                        <stop offset="0%" stopColor="#006193" />
+                        <stop offset="100%" stopColor="#326286" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="135"
+                      fill="none"
+                      stroke="url(#lineGrad)"
+                      strokeWidth="1.5"
+                      strokeDasharray="5,5"
+                    />
+                    <line
+                      x1="50%"
+                      y1="50%"
+                      x2="50%"
+                      y2="50%"
+                      stroke="#006193"
+                      strokeWidth="2"
+                    />
+                  </svg>
 
-                const isSelected = selectedWhyNode === node.id;
+                  <div className="absolute inset-0 flex justify-center items-center">
+                    {[
+                      {
+                        id: "finance",
+                        label: "Finanças",
+                        icon: "account_balance_wallet",
+                        angle: "0",
+                      },
+                      {
+                        id: "projects",
+                        label: "Projetos",
+                        icon: "folder_shared",
+                        angle: "60",
+                      },
+                      { id: "teams", label: "Equipes", icon: "group", angle: "120" },
+                      {
+                        id: "materials",
+                        label: "Materiais",
+                        icon: "inventory_2",
+                        angle: "180",
+                      },
+                      {
+                        id: "suppliers",
+                        label: "Fornecedores",
+                        icon: "local_shipping",
+                        angle: "240",
+                      },
+                      {
+                        id: "investors",
+                        label: "Investidores",
+                        icon: "payments",
+                        angle: "300",
+                      },
+                    ].map((node) => {
+                      const angleRad = (node.angle * Math.PI) / 180;
+                      const radius = 135;
+                      const x = radius * Math.cos(angleRad);
+                      const y = radius * Math.sin(angleRad);
 
-                return (
-                  <button
-                    key={node.id}
-                    onClick={() => setSelectedWhyNode(node.id)}
-                    className={`absolute w-16 h-16 rounded-full flex flex-col justify-center items-center transition-all duration-300 z-20 hover-lift ${
-                      isSelected
-                        ? "bg-secondary text-on-secondary shadow-lg border-2 border-white scale-110 card-glow"
-                        : "bg-white dark:bg-inverse-surface/10 text-on-surface-variant hover:bg-surface-container hover:text-primary border border-outline-variant/40 shadow-sm scale-100"
-                    }`}
-                    style={{
-                      transform: `translate(${x}px, ${y}px)`,
-                    }}
-                  >
-                    <span className="material-symbols-outlined text-[20px] icon-glow">
-                      {node.icon}
-                    </span>
-                    <span className="text-[9px] font-label font-bold mt-1 leading-none">
-                      {node.label}
-                    </span>
-                  </button>
-                );
-              })}
+                      const isSelected = selectedWhyNode === node.id;
 
-              <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40">
-                <defs>
-                  <linearGradient
-                    id="lineGrad"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="100%"
-                  >
-                    <stop offset="0%" stopColor="#006193" />
-                    <stop offset="100%" stopColor="#326286" />
-                  </linearGradient>
-                </defs>
-                <circle
-                  cx="50%"
-                  cy="50%"
-                  r="135"
-                  fill="none"
-                  stroke="url(#lineGrad)"
-                  strokeWidth="1.5"
-                  strokeDasharray="5,5"
-                />
-                <line
-                  x1="50%"
-                  y1="50%"
-                  x2="50%"
-                  y2="50%"
-                  stroke="#006193"
-                  strokeWidth="2"
-                />
-              </svg>
+                      return (
+                        <div
+                          key={node.id}
+                          className="absolute z-20"
+                          style={{
+                            transform: `translate(${x}px, ${y}px)`,
+                          }}
+                        >
+                          <div className="animate-[spin_40s_linear_infinite_reverse]">
+                            <button
+                              onClick={() => setSelectedWhyNode(node.id)}
+                              className={`w-16 h-16 rounded-full flex flex-col justify-center items-center transition-all duration-300 hover-lift ${
+                                isSelected
+                                  ? "bg-secondary text-on-secondary shadow-lg border-2 border-white scale-110 card-glow"
+                                  : "bg-white dark:bg-inverse-surface/10 text-on-surface-variant hover:bg-surface-container hover:text-primary border border-outline-variant/40 shadow-sm scale-100"
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[20px] icon-glow">
+                                {node.icon}
+                              </span>
+                              <span className="text-[9px] font-label font-bold mt-1 leading-none">
+                                {node.label}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="lg:col-span-6 glass-card card-glow rounded-2xl p-8 shadow-sm">
@@ -1244,10 +1259,12 @@ export function Landing() {
       {/* Footer */}
       <footer className="bg-surface-container-high py-12 px-6 border-t border-outline-variant/20">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary font-title text-sm font-bold icon-glow">
-              D
-            </div>
+          <div className="flex items-center gap-2">
+            <Logo
+              variant="icon"
+              className="w-12 h-12 shadow-md icon-glow"
+              imgClassName="w-12 h-12"
+            />
             <div>
               <h5 className="font-title text-base font-bold text-on-surface">
                 Despesify 2

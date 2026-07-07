@@ -30,7 +30,7 @@ export const useConversations = () => {
           )
         `,
         )
-        .eq("user_id", user.id)
+        .or(`user_id.eq.${user.id},participant_id.eq.${user.id}`)
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
@@ -40,7 +40,7 @@ export const useConversations = () => {
   });
 
   const createConversation = useMutation({
-    mutationFn: async ({ name, type, participantId, projectId }) => {
+    mutationFn: async ({ name, type, target_user_id, projectId }) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -51,7 +51,7 @@ export const useConversations = () => {
             user_id: user.id,
             name: name,
             type: type || "default",
-            participant_id: participantId || null,
+            participant_id: target_user_id || null,
             project_id: projectId || null,
           },
         ])

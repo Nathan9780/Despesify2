@@ -1,19 +1,75 @@
-import React, { useState } from "react";
-
+import React, { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
+import toast from "react-hot-toast";
 export function Settings() {
   // Estado das abas
   const [activeTab, setActiveTab] = useState("perfil");
 
+  const currentUserStr = localStorage.getItem("currentUser");
+  const storedUser = currentUserStr ? JSON.parse(currentUserStr) : {};
+
   // Dados do usuário
   const [user, setUser] = useState({
-    name: "Nathan Silva",
-    email: "nathan@despesify.com",
+    id: storedUser.id || null,
+    name: storedUser.name || "Nathan Silva",
+    email: storedUser.email || "nathan@despesify.com",
     phone: "(31) 99999-9999",
     bio: "CEO e fundador do Despesify 2",
-    avatar: "NS",
-    type: "enterprise", // individual | enterprise | investor
-    plan: "premium", // free | premium | enterprise
+    avatar: storedUser.name ? storedUser.name.substring(0, 2).toUpperCase() : "NS",
+    type: storedUser.plan === "enterprise" ? "enterprise" : storedUser.plan === "investor" ? "investor" : "individual",
+    plan: storedUser.plan || "citizen",
   });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', authData.user.id).single();
+        if (data) {
+          setUser(prev => ({
+            ...prev,
+            id: data.id,
+            name: data.name || prev.name,
+            email: data.email || prev.email,
+            phone: data.phone || prev.phone,
+            bio: data.bio || prev.bio,
+            avatar: data.avatar_url || data.name?.substring(0, 2).toUpperCase() || prev.avatar,
+            plan: data.plan || prev.plan,
+            type: data.plan === "enterprise" ? "enterprise" : data.plan === "investor" ? "investor" : "individual",
+          }));
+        }
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleUpdateProfile = async () => {
+    if (!user.id) return toast.error("Autenticação não encontrada no Supabase (usando modo local)");
+    
+    const { error } = await supabase.from('profiles').update({
+      name: user.name,
+      phone: user.phone,
+      bio: user.bio
+    }).eq('id', user.id);
+
+    if (error) {
+      toast.error("Erro ao atualizar perfil");
+    } else {
+      toast.success("Perfil atualizado com sucesso!");
+    }
+  };
+
+  const changePlan = (newPlanId) => {
+    setUser({ ...user, plan: newPlanId });
+    if (currentUserStr) {
+      const u = JSON.parse(currentUserStr);
+      u.plan = newPlanId;
+      localStorage.setItem("currentUser", JSON.stringify(u));
+    } else {
+      localStorage.setItem("currentUser", JSON.stringify({ name: user.name, email: user.email, plan: newPlanId }));
+    }
+    window.location.reload();
+  };
 
   // Configurações
   const [settings, setSettings] = useState({
@@ -291,6 +347,7 @@ export function Settings() {
                     <input
                       type="text"
                       value={user.name}
+                      onChange={(e) => setUser({...user, name: e.target.value})}
                       className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white/80"
                     />
                   </div>
@@ -301,7 +358,8 @@ export function Settings() {
                     <input
                       type="email"
                       value={user.email}
-                      className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white/80"
+                      disabled
+                      className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-100 text-gray-500 cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -311,6 +369,7 @@ export function Settings() {
                     <input
                       type="tel"
                       value={user.phone}
+                      onChange={(e) => setUser({...user, phone: e.target.value})}
                       className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white/80"
                     />
                   </div>
@@ -321,11 +380,12 @@ export function Settings() {
                     <input
                       type="text"
                       value={user.bio}
+                      onChange={(e) => setUser({...user, bio: e.target.value})}
                       className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white/80"
                     />
                   </div>
                 </div>
-                <button className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium">
+                <button onClick={handleUpdateProfile} className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium">
                   Atualizar Perfil
                 </button>
               </div>
@@ -425,28 +485,31 @@ export function Settings() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
                     {
-                      name: "Free",
+                      id: "investor",
+                      name: "Investidor",
                       price: "R$ 0",
-                      features: ["1 projeto", "1 GB", "Básico"],
+                      features: ["Acesso à Vitrine", "Visualização de Projetos", "Painel Exclusivo"],
                     },
                     {
-                      name: "Premium",
+                      id: "citizen",
+                      name: "Cidadão (Pessoal)",
                       price: "R$ 29,90/mês",
                       features: [
-                        "Projetos ilimitados",
-                        "10 GB",
-                        "Relatórios avançados",
+                        "Dashboard e Relatórios",
+                        "Gerenciamento de Projetos",
+                        "Gestão de Equipe e Materiais",
                       ],
                     },
                     {
+                      id: "enterprise",
                       name: "Empresarial",
                       price: "Sob consulta",
-                      features: ["Tudo do Premium", "Suporte dedicado", "API"],
+                      features: ["Tudo do Cidadão", "Tarefas em Kanban", "Módulo Fornecedores"],
                     },
                   ].map((plan) => (
                     <div
-                      key={plan.name}
-                      className={`glass-card rounded-xl p-4 text-center hover-lift ${user.plan === plan.name.toLowerCase() ? "border-2 border-blue-500" : ""}`}
+                      key={plan.id}
+                      className={`glass-card rounded-xl p-4 text-center hover-lift ${user.plan === plan.id ? "border-2 border-blue-500" : ""}`}
                     >
                       <h4 className="font-bold text-gray-800">{plan.name}</h4>
                       <p className="text-lg font-bold text-blue-600">
@@ -458,9 +521,10 @@ export function Settings() {
                         ))}
                       </ul>
                       <button
-                        className={`mt-3 w-full py-1.5 rounded-lg text-xs font-medium transition ${user.plan === plan.name.toLowerCase() ? "bg-blue-100 text-blue-600 cursor-default" : "btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white"}`}
+                        onClick={() => changePlan(plan.id)}
+                        className={`mt-3 w-full py-1.5 rounded-lg text-xs font-medium transition ${user.plan === plan.id ? "bg-blue-100 text-blue-600 cursor-default" : "btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white"}`}
                       >
-                        {user.plan === plan.name.toLowerCase()
+                        {user.plan === plan.id
                           ? "Atual"
                           : "Selecionar"}
                       </button>

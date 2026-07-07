@@ -13,6 +13,8 @@ import { Messages } from "./pages/Messages";
 import { Investors } from "./pages/Investors";
 import { Vitrine } from "./pages/Vitrine";
 import { Tasks } from "./pages/Tasks";
+import { Suppliers } from "./pages/Suppliers";
+import { Monetary } from "./pages/Monetary";
 import { WithPlan } from "./components/layout/WithPlan";
 import { Toaster } from "react-hot-toast";
 
@@ -29,26 +31,56 @@ function App() {
 
         {/* Rotas do sistema interno */}
         <Route element={<AppLayout />}>
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="projects" element={<Projects />} />
-          <Route path="team" element={<Team />} />
-          <Route path="materials" element={<Materials />} />
+          <Route path="dashboard" element={
+            <WithPlan allowedPlans={["citizen", "enterprise"]}>
+              <Dashboard />
+            </WithPlan>
+          } />
+          <Route path="projects" element={
+            <WithPlan allowedPlans={["citizen", "enterprise"]}>
+              <Projects />
+            </WithPlan>
+          } />
+          <Route path="team" element={
+            <WithPlan allowedPlans={["citizen", "enterprise"]}>
+              <Team />
+            </WithPlan>
+          } />
+          <Route path="materials" element={
+            <WithPlan allowedPlans={["citizen", "enterprise"]}>
+              <Materials />
+            </WithPlan>
+          } />
           <Route path="investors" element={
-            <WithPlan allowedPlans={["profissional", "investidor"]}>
+            <WithPlan allowedPlans={["citizen", "enterprise"]}>
               <Investors />
             </WithPlan>
           } />
+          <Route path="monetary" element={
+            <WithPlan allowedPlans={["investor"]}>
+              <Monetary />
+            </WithPlan>
+          } />
           <Route path="vitrine" element={
-            <WithPlan allowedPlans={["profissional", "investidor"]}>
+            <WithPlan allowedPlans={["investor"]}>
               <Vitrine />
             </WithPlan>
           } />
           <Route path="tasks" element={
-            <WithPlan allowedPlans={["empresarial", "enterprise"]}>
+            <WithPlan allowedPlans={["enterprise"]}>
               <Tasks />
             </WithPlan>
           } />
-          <Route path="messages" element={<Messages />} />
+          <Route path="suppliers" element={
+            <WithPlan allowedPlans={["enterprise"]}>
+              <Suppliers />
+            </WithPlan>
+          } />
+          <Route path="messages" element={
+            <WithPlan allowedPlans={["citizen", "enterprise"]}>
+              <Messages />
+            </WithPlan>
+          } />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

@@ -45,17 +45,31 @@
     background-color: var(--color-background) !important;
   }
 
-  /* Ajuste dinâmico de cores de texto fixas no dark mode */
+  /* Ajuste dinâmico de cores de texto neutras para preto no claro e branco no escuro */
+  [class*="text-gray-"],
+  [class*="text-slate-"],
+  [class*="text-zinc-"],
+  .text-white {
+    /* Por padrão (modo claro), todas as letras viram pretas */
+    color: #000000 !important;
+  }
+
+  /* Exceto botões primários ou áreas específicas que precisam de texto branco no claro */
+  .bg-blue-600.text-white, .btn-primary-glow.text-white, .bg-primary.text-white {
+    color: #ffffff !important;
+  }
+
+  .dark [class*="text-gray-"],
+  .dark [class*="text-slate-"],
+  .dark [class*="text-zinc-"],
+  .dark .text-black,
   .dark .text-gray-900,
   .dark .text-gray-800,
   .dark .text-gray-700,
-  .dark .text-gray-600 {
-    color: #ffffff !important;
-  }
-  
+  .dark .text-gray-600,
   .dark .text-gray-500,
   .dark .text-gray-400 {
-    color: #e2e8f0 !important;
+    color: #ffffff !important;
   }
 
   /* Fix input, select, textarea visibility in dark mode */

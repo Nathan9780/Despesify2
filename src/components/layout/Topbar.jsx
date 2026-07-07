@@ -53,18 +53,40 @@ export function Topbar() {
     navigate("/login");
   };
 
-  const currentPlan = user?.user_metadata?.plan?.toLowerCase() || "citizen";
+  const currentUserStr = localStorage.getItem("currentUser");
+  const localUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  const currentPlan = (localUser?.plan || user?.user_metadata?.plan || "citizen").toLowerCase();
 
-  const navItems = [
-    { to: "/dashboard", label: "Dashboard", icon: "dashboard", restricted: [] },
-    { to: "/projects", label: "Projetos", icon: "folder_open", restricted: [] },
-    { to: "/tasks", label: "Tarefas", icon: "task_alt", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal", "profissional"] },
-    { to: "/team", label: "Equipe", icon: "group", restricted: [] },
-    { to: "/materials", label: "Materiais", icon: "inventory_2", restricted: [] },
-    { to: "/investors", label: "Investidores", icon: "payments", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal"] },
-    { to: "/vitrine", label: "Vitrine", icon: "store", restricted: ["cidadão", "citizen", "pessoal", "plano pessoal"] },
-    { to: "/messages", label: "Mensagens", icon: "chat", restricted: [] },
-  ].filter(item => !item.restricted.includes(currentPlan));
+  const getNavItems = () => {
+    if (currentPlan === "investor") {
+      return [
+        { to: "/monetary", label: "Monetário", icon: "account_balance" },
+        { to: "/vitrine", label: "Investir", icon: "payments" },
+      ];
+    }
+
+    const items = [
+      { to: "/dashboard", label: "Dashboard", icon: "dashboard" },
+      { to: "/projects", label: "Projetos", icon: "folder_open" },
+      { to: "/team", label: "Equipe", icon: "group" },
+      { to: "/materials", label: "Materiais", icon: "inventory_2" },
+    ];
+
+    if (currentPlan === "enterprise") {
+      items.push({ to: "/suppliers", label: "Fornecedores", icon: "local_shipping" });
+      items.push({ to: "/tasks", label: "Tarefas", icon: "task_alt" });
+      items.push({ to: "/investors", label: "Investidores", icon: "store" });
+    } else {
+      // citizen
+      items.push({ to: "/investors", label: "Contribuinte", icon: "store" });
+    }
+
+    items.push({ to: "/messages", label: "Mensagens", icon: "chat" });
+
+    return items;
+  };
+
+  const navItems = getNavItems();
 
   const userName =
     user?.user_metadata?.full_name ||
@@ -79,14 +101,15 @@ export function Topbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16 px-6 bg-white/70 dark:bg-[#0F1829]/95 backdrop-blur-md border-b border-white/30 dark:border-[#1A2438] flex items-center justify-between shadow-sm select-none transition-colors duration-300">
-      {/* Esquerda: Espaço Vazio (opcional se não quiser logo na esquerda) */}
-      <div className="w-8"></div>
-
-      {/* Centro: Links de Navegação com Logo */}
-      <nav className="hidden md:flex items-center gap-4 h-full">
+      {/* Esquerda: Logo no cantinho */}
+      <div className="flex-1 flex items-center justify-start">
         <Link to="/dashboard" className="flex items-center">
           <Logo variant="icon" className="h-20 w-auto" imgClassName="h-20 w-auto" />
         </Link>
+      </div>
+
+      {/* Centro: Links de Navegação */}
+      <nav className="hidden md:flex items-center justify-center gap-4 h-full">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -108,7 +131,7 @@ export function Topbar() {
       </nav>
 
       {/* Direita: Ações */}
-      <div className="flex items-center gap-4">
+      <div className="flex-1 flex items-center justify-end gap-4">
         {/* Theme Toggle */}
         <ThemeToggle />
 

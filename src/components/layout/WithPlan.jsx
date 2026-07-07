@@ -4,20 +4,19 @@ import { Link } from "react-router-dom";
 
 export function WithPlan({ allowedPlans, children, fallbackMessage }) {
   const currentUserStr = localStorage.getItem("currentUser");
-  let plan = "cidadão"; // default fallback
+  let plan = "citizen"; // default fallback
 
   if (currentUserStr) {
     try {
       const user = JSON.parse(currentUserStr);
-      // Supondo que "user.plan" venha do local storage/Supabase auth metadata
-      plan = (user.plan || "cidadão").toLowerCase();
+      plan = (user.plan || "citizen").toLowerCase();
     } catch (e) {
       console.error(e);
     }
   }
 
-  // Se o plano do usuário está na lista de planos permitidos
-  const isAllowed = allowedPlans.map(p => p.toLowerCase()).includes(plan) || plan === "empresarial";
+  // Verifica rigorosamente os planos permitidos
+  const isAllowed = allowedPlans.map(p => p.toLowerCase()).includes(plan);
 
   if (!isAllowed) {
     return (
