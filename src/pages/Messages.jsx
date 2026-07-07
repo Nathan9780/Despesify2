@@ -833,17 +833,20 @@ export function Messages() {
                 <input
                   type="text"
                   value={newConvName}
-                  onChange={(e) => handleSearchProfiles(e.target.value)}
+                  onChange={(e) => {
+                    handleSearchProfiles(e.target.value);
+                    setSelectedProfileId(null);
+                  }}
                   className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Nome do usuário"
+                  placeholder="Pesquise o nome do usuário"
                   required
                 />
                 {profilesList.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {profilesList.map(profile => (
                       <div 
                         key={profile.id}
-                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 flex items-center gap-3"
                         onClick={() => {
                           setNewConvName(profile.name);
                           setSelectedProfileId(profile.id);
@@ -851,31 +854,47 @@ export function Messages() {
                           setProfilesList([]);
                         }}
                       >
-                        <p className="text-sm font-medium text-gray-800">{profile.name}</p>
-                        <p className="text-xs text-gray-500">{profile.email}</p>
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-600 text-xs">
+                          {profile.name?.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{profile.name}</p>
+                          <p className="text-xs text-gray-500">{profile.email}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
+              
+              {selectedProfileId && (
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                  <span className="text-xs text-green-700">Usuário selecionado. Pronto para conversar!</span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tipo de Contato</label>
                 <select
                   value={newConvType}
                   onChange={(e) => setNewConvType(e.target.value)}
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                  disabled
                 >
                   <option value="default">Contato Padrão</option>
                   <option value="worker">Funcionário</option>
                   <option value="supplier">Fornecedor</option>
                   <option value="investor">Investidor</option>
                 </select>
+                <p className="text-[10px] text-gray-500 mt-1">O tipo de contato é definido automaticamente pelo plano do usuário.</p>
               </div>
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition mt-4"
+                disabled={!selectedProfileId}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-2 rounded-lg font-medium transition mt-4"
               >
-                Iniciar Conversa
+                {selectedProfileId ? "Iniciar Conversa" : "Selecione um usuário"}
               </button>
             </form>
           </div>

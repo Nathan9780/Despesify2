@@ -188,25 +188,53 @@ export function Register() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("User already registered")) {
+          throw new Error("Este e-mail já está cadastrado.");
+        } else if (error.message.includes("Password should be at least")) {
+          throw new Error("A senha deve ter pelo menos 6 caracteres.");
+        }
+        throw error;
+      }
 
-      // retro-compatibility local
-      const newUser = {
-        id: data.user?.id,
-        name: formData.name,
-        email: formData.email,
-        plan: null,
-      };
-      
-      const usersStr = localStorage.getItem("users");
-      const users = usersStr ? JSON.parse(usersStr) : [];
-      users.push(newUser);
-      localStorage.setItem("users", JSON.stringify(users));
-      localStorage.setItem("currentUser", JSON.stringify(newUser));
+      if (data?.user) {
+        // Garantir que o perfil seja criado (caso não haja trigger no DB)
+        await supabase.from("profiles").upsert({
+          id: data.user.id,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          plan: "citizen",
+        }, { onConflict: "id" });
 
-      navigate("/select-plan");
+        // Se o Supabase exigir confirmação de e-mail, session será null
+        if (!data.session) {
+          setErrors({ email: "Conta criada! Verifique seu e-mail para confirmar antes de prosseguir." });
+          setIsLoading(false);
+          return;
+        }
+
+        // retro-compatibility local
+        const newUser = {
+          id: data.user.id,
+          name: formData.name,
+          email: formData.email,
+          plan: "citizen",
+        };
+        
+        const usersStr = localStorage.getItem("users");
+        const users = usersStr ? JSON.parse(usersStr) : [];
+        // Prevenir duplicação local
+        if (!users.find(u => u.email === newUser.email)) {
+          users.push(newUser);
+          localStorage.setItem("users", JSON.stringify(users));
+        }
+        localStorage.setItem("currentUser", JSON.stringify(newUser));
+
+        navigate("/select-plan");
+      }
     } catch (err) {
-      setErrors({ email: "Erro ao criar conta: " + err.message });
+      setErrors({ email: err.message || "Erro ao criar conta." });
     } finally {
       setIsLoading(false);
     }
