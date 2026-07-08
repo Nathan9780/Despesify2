@@ -15,6 +15,7 @@ import { Vitrine } from "./pages/Vitrine";
 import { Tasks } from "./pages/Tasks";
 import { Suppliers } from "./pages/Suppliers";
 import { Monetary } from "./pages/Monetary";
+import { ProjectDetails } from "./pages/ProjectDetails";
 import { WithPlan } from "./components/layout/WithPlan";
 import { Toaster } from "react-hot-toast";
 
@@ -32,13 +33,18 @@ function App() {
         {/* Rotas do sistema interno */}
         <Route element={<AppLayout />}>
           <Route path="dashboard" element={
-            <WithPlan allowedPlans={["citizen", "enterprise"]}>
+            <WithPlan allowedPlans={["citizen", "enterprise", "investor"]}>
               <Dashboard />
             </WithPlan>
           } />
           <Route path="projects" element={
             <WithPlan allowedPlans={["citizen", "enterprise"]}>
               <Projects />
+            </WithPlan>
+          } />
+          <Route path="projects/:id" element={
+            <WithPlan allowedPlans={["citizen", "enterprise"]}>
+              <ProjectDetails />
             </WithPlan>
           } />
           <Route path="team" element={
@@ -62,7 +68,7 @@ function App() {
             </WithPlan>
           } />
           <Route path="vitrine" element={
-            <WithPlan allowedPlans={["investor"]}>
+            <WithPlan allowedPlans={["investor", "enterprise"]}>
               <Vitrine />
             </WithPlan>
           } />
@@ -77,7 +83,7 @@ function App() {
             </WithPlan>
           } />
           <Route path="messages" element={
-            <WithPlan allowedPlans={["citizen", "enterprise"]}>
+            <WithPlan allowedPlans={["citizen", "enterprise", "investor"]}>
               <Messages />
             </WithPlan>
           } />

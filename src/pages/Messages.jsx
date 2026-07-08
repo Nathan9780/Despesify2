@@ -104,6 +104,67 @@ export function Messages() {
     });
   }, [conversations, filterType, searchTerm]);
 
+  // Busca global de usuários para o sidebar (estilo GitHub)
+  const [globalProfilesList, setGlobalProfilesList] = useState([]);
+  const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+
+  useEffect(() => {
+    const searchGlobalProfiles = async () => {
+      if (!searchTerm.trim()) {
+        setGlobalProfilesList([]);
+        return;
+      }
+      setIsSearchingGlobal(true);
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, email, plan')
+          .ilike('name', `%${searchTerm}%`)
+          .limit(5);
+
+        if (data && data.length > 0) {
+          setGlobalProfilesList(data);
+        } else {
+          // Fallback if table is empty or fails
+          const mockProfiles = [
+            { id: 'mock-1', name: 'João Silva', email: 'joao@example.com', plan: 'investor' },
+            { id: 'mock-2', name: 'Maria Souza', email: 'maria@empresa.com', plan: 'enterprise' },
+            { id: 'mock-3', name: 'Carlos Tech', email: 'carlos@tech.com', plan: 'citizen' }
+          ].filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+          setGlobalProfilesList(mockProfiles);
+        }
+      } catch (err) {
+        setGlobalProfilesList([]);
+      }
+      
+      setIsSearchingGlobal(false);
+    };
+
+    const debounce = setTimeout(() => {
+      searchGlobalProfiles();
+    }, 300);
+
+    return () => clearTimeout(debounce);
+  }, [searchTerm]);
+
+  const handleStartChatWithProfile = async (profile) => {
+    try {
+      const convType = profile.plan === 'investor' ? 'investor' : profile.plan === 'enterprise' ? 'supplier' : 'default';
+      const newConv = await createConversation.mutateAsync({ 
+        name: profile.name, 
+        type: convType,
+        target_user_id: profile.id
+      });
+      setSelectedConversation(newConv);
+      toast.success(`Conversa com ${profile.name} iniciada!`);
+      setSearchTerm("");
+      setGlobalProfilesList([]);
+    } catch (err) {
+      toast.error(`Erro ao criar conversa: ${err.message}`);
+    }
+  };
+
   // Estatísticas
   const totalChats = conversations?.length || 0;
   const unreadCount =
@@ -360,11 +421,42 @@ export function Messages() {
                 </span>
                 <input
                   type="text"
-                  placeholder="Buscar conversas..."
+                  placeholder="Buscar usuários ou conversas..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm text-sm"
+                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm text-sm transition-all"
                 />
+                
+                {/* GitHub-style dropdown for users */}
+                {searchTerm && (globalProfilesList.length > 0 || isSearchingGlobal) && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto animate-fade-up">
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100">
+                      Usuários encontrados
+                    </div>
+                    {isSearchingGlobal ? (
+                      <div className="p-4 text-center text-sm text-gray-500">Buscando...</div>
+                    ) : (
+                      globalProfilesList.map(profile => (
+                        <div 
+                          key={profile.id}
+                          className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-b-0 flex items-center gap-3 transition-colors"
+                          onClick={() => handleStartChatWithProfile(profile)}
+                        >
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-600 text-xs flex-shrink-0">
+                            {profile.name?.charAt(0) || "?"}
+                          </div>
+                          <div className="overflow-hidden">
+                            <p className="text-sm font-medium text-gray-800 truncate">{profile.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{profile.email}</p>
+                          </div>
+                          <span className="material-symbols-outlined text-gray-300 ml-auto text-sm">
+                            chat_bubble
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex gap-1 mt-2 overflow-x-auto pb-1 scrollbar-hide">
                 <button

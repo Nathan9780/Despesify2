@@ -55,6 +55,7 @@ export function Sidebar() {
       items.push({ name: "Fornecedores", path: "/suppliers", icon: "local_shipping" });
       items.push({ name: "Tarefas", path: "/tasks", icon: "task_alt" });
       items.push({ name: "Investidores", path: "/investors", icon: "store" });
+      items.push({ name: "Vitrine", path: "/vitrine", icon: "storefront" });
     } else {
       // citizen
       items.push({ name: "Contribuinte", path: "/investors", icon: "store" });

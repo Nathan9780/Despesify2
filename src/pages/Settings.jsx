@@ -59,7 +59,7 @@ export function Settings() {
     }
   };
 
-  const changePlan = (newPlanId) => {
+  const changePlan = async (newPlanId) => {
     setUser({ ...user, plan: newPlanId });
     if (currentUserStr) {
       const u = JSON.parse(currentUserStr);
@@ -68,7 +68,15 @@ export function Settings() {
     } else {
       localStorage.setItem("currentUser", JSON.stringify({ name: user.name, email: user.email, plan: newPlanId }));
     }
-    window.location.reload();
+    
+    if (user.id) {
+       await supabase.from('profiles').update({ plan: newPlanId }).eq('id', user.id);
+    }
+    
+    toast.success("Plano atualizado com sucesso! Redirecionando...", { duration: 2000 });
+    setTimeout(() => {
+        window.location.href = "/dashboard";
+    }, 800);
   };
 
   // Configurações

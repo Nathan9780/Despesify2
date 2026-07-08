@@ -67,6 +67,17 @@ export function Dashboard() {
     user?.email?.split('@')[0] ||
     "Usuário";
 
+  // Check if user is investor to show ghost tab
+  let userPlan = "citizen";
+  try {
+    const currentUserStr = localStorage.getItem("currentUser");
+    if (currentUserStr) userPlan = JSON.parse(currentUserStr).plan || "citizen";
+  } catch(e) {}
+
+  if (userPlan === "investor") {
+    return <div className="p-6 bg-gray-50 dark:bg-[#0F1829] min-h-screen"></div>;
+  }
+
   // Estatísticas calculadas a partir dos dados reais
   const stats = {
     totalBudget: dashboardData?.finances?.totalBudget || 0,

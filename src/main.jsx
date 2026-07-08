@@ -10,8 +10,9 @@ import "./index.css";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000,
-      refetchOnWindowFocus: true,
+      staleTime: 5 * 60 * 1000, // 5 minutos
+      refetchOnWindowFocus: false, // evita refetch desnecessário ao trocar de aba
+      retry: 1, // não tentar 3x em caso de erro (ex: coluna inexistente)
     },
   },
 });

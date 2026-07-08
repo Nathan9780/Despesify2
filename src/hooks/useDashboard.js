@@ -5,12 +5,12 @@ import { supabase } from "../lib/supabase";
 export const useDashboard = () => {
   return useQuery({
     queryKey: ["dashboard"],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
 
-      // Se não houver usuário logado, retorna dados vazios
-      if (userError || !userId) {
+      if (!userId) {
         return {
           projects: { total: 0 },
           finances: { totalBudget: 0, totalSpent: 0, available: 0 },
@@ -21,13 +21,12 @@ export const useDashboard = () => {
         };
       }
 
-      // Executar consultas em paralelo com tratamento de erro individual
       const [
         projectsResult,
         financesResult,
         employeesResult,
         materialsResult,
-        investmentsResult,
+        investorsResult,
         messagesResult,
       ] = await Promise.all([
         supabase
@@ -44,7 +43,8 @@ export const useDashboard = () => {
           .from("materials")
           .select("id, quantity, unit_price")
           .eq("user_id", userId),
-        supabase.from("investments").select("amount").eq("user_id", userId),
+        // Usa tabela 'investors' (real) em vez de 'investments' (inexistente)
+        supabase.from("investors").select("invested").eq("user_id", userId),
         supabase
           .from("messages")
           .select("id", { count: "exact", head: true })
@@ -52,33 +52,20 @@ export const useDashboard = () => {
           .eq("is_read", false),
       ]);
 
-      // Extrair dados de forma segura (garantir que sejam arrays)
-      const financesData = financesResult.data ?? []; // ← FIX: se for null, vira array vazio
+      const financesData = financesResult.data ?? [];
       const materialsData = materialsResult.data ?? [];
-      const investmentsData = investmentsResult.data ?? [];
+      const investorsData = investorsResult.data ?? [];
 
-      // Calcular financeiro
-      const totalBudget = financesData.reduce(
-        (sum, p) => sum + (p.budget || 0),
-        0,
-      );
-      const totalSpent = financesData.reduce(
-        (sum, p) => sum + (p.spent || 0),
-        0,
-      );
+      const totalBudget = financesData.reduce((sum, p) => sum + (p.budget || 0), 0);
+      const totalSpent = financesData.reduce((sum, p) => sum + (p.spent || 0), 0);
       const available = totalBudget - totalSpent;
 
-      // Calcular estoque
       const stockValue = materialsData.reduce(
         (sum, m) => sum + (m.quantity || 0) * (m.unit_price || 0),
         0,
       );
 
-      // Total captado
-      const totalRaised = investmentsData.reduce(
-        (s, i) => s + (i.amount || 0),
-        0,
-      );
+      const totalRaised = investorsData.reduce((s, i) => s + (i.invested || 0), 0);
 
       return {
         projects: { total: projectsResult.count || 0 },

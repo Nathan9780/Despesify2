@@ -1,32 +1,54 @@
 // src/hooks/useInvestments.js
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import { supabase } from "../lib/supabase";
 
 export const useInvestments = () => {
   const [balance, setBalance] = useState(0);
   const [investments, setInvestments] = useState([]);
+  const [user, setUser] = useState(null);
 
-  // Load from localStorage for MVP mock
   useEffect(() => {
-    const savedBalance = localStorage.getItem("userBalance");
-    if (savedBalance) {
-      setBalance(parseFloat(savedBalance));
-    }
-    
-    const savedInvestments = localStorage.getItem("userInvestments");
-    if (savedInvestments) {
-      setInvestments(JSON.parse(savedInvestments));
-    }
+    const loadData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+        const { data } = await supabase
+          .from("investor_monetary")
+          .select("balance, invested")
+          .eq("user_id", user.id)
+          .single();
+          
+        if (data) {
+          setBalance(Number(data.balance));
+        } else {
+          // Fallback to localStorage if no row
+          const localBal = localStorage.getItem("user_balance");
+          if (localBal) setBalance(Number(localBal));
+        }
+      }
+
+      // We still mock the investments list since there's no table for specific investments yet
+      const savedInvestments = localStorage.getItem("userInvestments");
+      if (savedInvestments) {
+        setInvestments(JSON.parse(savedInvestments));
+      }
+    };
+    loadData();
   }, []);
 
-  const addBalance = (amount) => {
+  const addBalance = async (amount) => {
     const newBalance = balance + amount;
     setBalance(newBalance);
-    localStorage.setItem("userBalance", newBalance.toString());
+    localStorage.setItem("user_balance", newBalance.toString());
+    
+    if (user) {
+      await supabase.from("investor_monetary").update({ balance: newBalance }).eq("user_id", user.id);
+    }
     toast.success(`Saldo adicionado: R$ ${amount.toLocaleString()}`);
   };
 
-  const invest = (project, amount) => {
+  const invest = async (project, amount) => {
     if (amount <= 0) {
       toast.error("Valor inválido.");
       return false;
@@ -38,7 +60,18 @@ export const useInvestments = () => {
 
     const newBalance = balance - amount;
     setBalance(newBalance);
-    localStorage.setItem("userBalance", newBalance.toString());
+    localStorage.setItem("user_balance", newBalance.toString());
+    
+    // Also update invested amount
+    if (user) {
+      const { data } = await supabase.from("investor_monetary").select("invested").eq("user_id", user.id).single();
+      const currentInvested = data ? Number(data.invested) : 0;
+      await supabase.from("investor_monetary").update({ 
+        balance: newBalance,
+        invested: currentInvested + amount
+      }).eq("user_id", user.id);
+      localStorage.setItem("user_invested", (currentInvested + amount).toString());
+    }
 
     const newInvestment = {
       id: Date.now().toString(),

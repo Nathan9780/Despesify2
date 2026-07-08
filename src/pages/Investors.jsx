@@ -5,6 +5,7 @@ import { useProposals } from "../hooks/useProposals";
 import { usePublicProjects } from "../hooks/usePublicProjects";
 import { useDashboard } from "../hooks/useDashboard";
 import { useInvestments } from "../hooks/useInvestments";
+import { useInvitations } from "../hooks/useInvitations";
 import toast from "react-hot-toast";
 
 export function Investors() {
@@ -34,12 +35,51 @@ export function Investors() {
   const [showAddBalance, setShowAddBalance] = useState(false);
   const [balanceAmount, setBalanceAmount] = useState("");
 
+  // Sistema de convites
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showInvitationsPanel, setShowInvitationsPanel] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ receiver_email: "", message: "" });
+  const {
+    receivedInvitations,
+    sentInvitations,
+    sendInvitation,
+    respondInvitation,
+  } = useInvitations();
+
+  const pendingReceived = receivedInvitations.filter(i => i.status === "pending");
+
   const handleAddBalance = (e) => {
     e.preventDefault();
     if (!balanceAmount || parseFloat(balanceAmount) <= 0) return;
     addBalance(parseFloat(balanceAmount));
     setBalanceAmount("");
     setShowAddBalance(false);
+  };
+
+  const handleSendInvite = async (e) => {
+    e.preventDefault();
+    if (!inviteForm.receiver_email.trim()) return;
+    try {
+      await sendInvitation.mutateAsync({
+        receiver_email: inviteForm.receiver_email.trim(),
+        message: inviteForm.message,
+        sender_role: "enterprise",
+      });
+      toast.success(`Solicitação enviada para ${inviteForm.receiver_email}!`);
+      setInviteForm({ receiver_email: "", message: "" });
+      setShowInviteModal(false);
+    } catch (err) {
+      toast.error(err.message || "Erro ao enviar solicitação.");
+    }
+  };
+
+  const handleRespond = async (id, status) => {
+    try {
+      await respondInvitation.mutateAsync({ id, status });
+      toast.success(status === "accepted" ? "Solicitação aceita!" : "Solicitação recusada.");
+    } catch (err) {
+      toast.error(err.message || "Erro ao responder solicitação.");
+    }
   };
 
   // Oportunidades (notificações) - dados estáticos
@@ -293,11 +333,21 @@ export function Investors() {
             <span className="material-symbols-outlined text-lg">add_circle</span>
             Adicionar Saldo
           </button>
-          <button className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg">
-              person_add
-            </span>
-            Novo Investidor
+          <button onClick={() => setShowInviteModal(true)} className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">person_add</span>
+            Convidar Investidor
+          </button>
+          <button
+            onClick={() => setShowInvitationsPanel(true)}
+            className="relative btn-outline-glow px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50"
+          >
+            <span className="material-symbols-outlined text-lg">mail</span>
+            Solicitações
+            {pendingReceived.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {pendingReceived.length}
+              </span>
+            )}
           </button>
           <Link to="/vitrine">
             <button className="btn-outline-glow px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-50">
@@ -494,9 +544,9 @@ export function Investors() {
                 ))
               ) : (
                 <div className="col-span-2 text-center py-8 text-gray-500">
-                  <p>Nenhum investidor cadastrado.</p>
-                  <button className="mt-2 text-blue-600 hover:underline">
-                    Adicionar primeiro investidor
+                  <p>Nenhum investidor vinculado.</p>
+                  <button onClick={() => setShowInviteModal(true)} className="mt-2 text-blue-600 hover:underline">
+                    Convidar primeiro investidor
                   </button>
                 </div>
               )}
@@ -801,6 +851,153 @@ export function Investors() {
                 Confirmar
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Convidar Investidor */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowInviteModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Convidar Investidor</h3>
+                <p className="text-sm text-gray-500 mt-0.5">O investidor receberá uma solicitação e poderá aceitar ou recusar.</p>
+              </div>
+              <button onClick={() => setShowInviteModal(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleSendInvite}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail do Investidor *</label>
+                <input
+                  type="email"
+                  required
+                  value={inviteForm.receiver_email}
+                  onChange={e => setInviteForm({ ...inviteForm, receiver_email: e.target.value })}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="investidor@email.com"
+                />
+                <p className="text-xs text-gray-400 mt-1">O usuário precisa ter uma conta no sistema.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mensagem (opcional)</label>
+                <textarea
+                  value={inviteForm.message}
+                  onChange={e => setInviteForm({ ...inviteForm, message: e.target.value })}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none min-h-[80px] resize-none"
+                  placeholder="Olá! Gostaria de convidar você para investir em nossos projetos..."
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={sendInvitation.isPending}
+                className="w-full mt-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white py-3 rounded-lg font-bold transition flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[20px]">send</span>
+                {sendInvitation.isPending ? "Enviando..." : "Enviar Solicitação"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Painel de Solicitações */}
+      {showInvitationsPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowInvitationsPanel(false)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-6 border-b">
+              <h3 className="text-xl font-bold text-gray-800">Solicitações</h3>
+              <button onClick={() => setShowInvitationsPanel(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-6 space-y-6">
+              {/* Recebidas */}
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-blue-500 text-[18px]">inbox</span>
+                  Recebidas
+                  {pendingReceived.length > 0 && (
+                    <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">{pendingReceived.length} pendentes</span>
+                  )}
+                </h4>
+                {receivedInvitations.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">Nenhuma solicitação recebida.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {receivedInvitations.map(inv => (
+                      <div key={inv.id} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-sm font-medium text-gray-800">De: {inv.sender_id?.substring(0, 8)}...</p>
+                            {inv.message && <p className="text-xs text-gray-500 mt-1 italic">"{inv.message}"</p>}
+                            <p className="text-xs text-gray-400 mt-1">{new Date(inv.created_at).toLocaleDateString('pt-BR')}</p>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            inv.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                            inv.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {inv.status === 'pending' ? '⏳ Pendente' : inv.status === 'accepted' ? '✅ Aceita' : '❌ Recusada'}
+                          </span>
+                        </div>
+                        {inv.status === 'pending' && (
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => handleRespond(inv.id, 'accepted')}
+                              disabled={respondInvitation.isPending}
+                              className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white py-1.5 rounded-lg text-sm font-medium transition"
+                            >
+                              ✅ Aceitar
+                            </button>
+                            <button
+                              onClick={() => handleRespond(inv.id, 'rejected')}
+                              disabled={respondInvitation.isPending}
+                              className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white py-1.5 rounded-lg text-sm font-medium transition"
+                            >
+                              ❌ Recusar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Enviadas */}
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-gray-400 text-[18px]">send</span>
+                  Enviadas
+                </h4>
+                {sentInvitations.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">Nenhuma solicitação enviada.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {sentInvitations.map(inv => (
+                      <div key={inv.id} className="bg-gray-50 rounded-xl p-3 border border-gray-200 flex justify-between items-center">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{inv.receiver_email}</p>
+                          <p className="text-xs text-gray-400">{new Date(inv.created_at).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          inv.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          inv.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {inv.status === 'pending' ? '⏳ Pendente' : inv.status === 'accepted' ? '✅ Aceita' : '❌ Recusada'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
