@@ -9,13 +9,30 @@ export function PlanSelection() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("currentUser");
-    if (!userStr) {
+    try {
+      const userStr = localStorage.getItem("currentUser");
+      if (!userStr) {
+        navigate("/login");
+        return;
+      }
+      const parsedUser = JSON.parse(userStr);
+      if (!parsedUser || typeof parsedUser !== 'object') {
+        throw new Error("Invalid user");
+      }
+      setUser(parsedUser);
+    } catch (e) {
+      localStorage.removeItem("currentUser");
       navigate("/login");
-      return;
     }
-    setUser(JSON.parse(userStr));
   }, [navigate]);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const handlePlanSelect = (planKey) => {
     setSelectedPlan(planKey);
@@ -118,8 +135,6 @@ export function PlanSelection() {
       ],
     },
   ];
-
-  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background py-16 px-6 relative overflow-hidden font-body flex flex-col justify-center">

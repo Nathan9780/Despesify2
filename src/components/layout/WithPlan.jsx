@@ -12,7 +12,9 @@ export function WithPlan({ allowedPlans, children, fallbackMessage }) {
   if (currentUserStr) {
     try {
       const user = JSON.parse(currentUserStr);
-      plan = (user.plan || "citizen").toLowerCase();
+      if (user && typeof user === 'object') {
+        plan = (user.plan || "citizen").toLowerCase();
+      }
     } catch (e) {
       console.error(e);
     }

@@ -11,6 +11,9 @@ export function AppLayout() {
   let currentUser;
   try {
     currentUser = JSON.parse(currentUserStr);
+    if (!currentUser || typeof currentUser !== 'object') {
+      throw new Error("Invalid user object");
+    }
   } catch (e) {
     console.error('Failed to parse currentUser from localStorage', e);
     // Remove corrupted data and redirect to login

@@ -6,7 +6,11 @@ export function Sidebar() {
   const navigate = useNavigate();
 
   const currentUserStr = localStorage.getItem("currentUser");
-  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  let currentUser = null;
+  try {
+    currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+    if (currentUser && typeof currentUser !== 'object') currentUser = null;
+  } catch(e) {}
 
   const planNames = {
     citizen: {

@@ -54,7 +54,11 @@ export function Topbar() {
   };
 
   const currentUserStr = localStorage.getItem("currentUser");
-  const localUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  let localUser = null;
+  try {
+    localUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+    if (localUser && typeof localUser !== 'object') localUser = null;
+  } catch(e) {}
   const currentPlan = (localUser?.plan || user?.user_metadata?.plan || "citizen").toLowerCase();
 
   const getNavItems = () => {

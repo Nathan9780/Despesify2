@@ -390,6 +390,12 @@ export function Landing() {
           >
             Por Que Nós?
           </a>
+          <a
+            href="#tecnologias"
+            className="text-sm font-label text-on-surface-variant hover:text-primary transition-colors"
+          >
+            Tecnologias
+          </a>
         </nav>
         <div>
           <Link
@@ -1227,6 +1233,91 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Tecnologias Section */}
+      <section
+        id="tecnologias"
+        className="py-24 bg-surface-container-low border-y border-outline-variant/20 scroll-mt-20 section-glow"
+      >
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="badge-glow inline-block text-xs uppercase tracking-widest text-primary font-bold mb-3 font-label px-3 py-1 rounded-full">
+              Tecnologias
+            </span>
+            <h3 className="font-title text-3xl md:text-4xl text-on-surface font-extrabold mb-4 number-glow">
+              O Motor do Despesify 2
+            </h3>
+            <p className="font-body text-on-surface-variant text-base">
+              Desenvolvido com as tecnologias mais modernas e robustas do mercado
+              para garantir performance, escalabilidade e segurança.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 items-stretch">
+            {[
+              {
+                name: "React",
+                icon: "code",
+                color: "text-blue-500",
+                bg: "bg-blue-500/10",
+                desc: "Biblioteca para interfaces"
+              },
+              {
+                name: "Vite",
+                icon: "bolt",
+                color: "text-purple-500",
+                bg: "bg-purple-500/10",
+                desc: "Ferramenta de build rápida"
+              },
+              {
+                name: "Tailwind CSS",
+                icon: "palette",
+                color: "text-cyan-500",
+                bg: "bg-cyan-500/10",
+                desc: "Estilização utilitária e ágil"
+              },
+              {
+                name: "Supabase",
+                icon: "database",
+                color: "text-emerald-500",
+                bg: "bg-emerald-500/10",
+                desc: "Backend e autenticação"
+              },
+              {
+                name: "React Query",
+                icon: "sync",
+                color: "text-red-500",
+                bg: "bg-red-500/10",
+                desc: "Gerenciamento de cache"
+              },
+              {
+                name: "Recharts",
+                icon: "insert_chart",
+                color: "text-indigo-500",
+                bg: "bg-indigo-500/10",
+                desc: "Visualização de dados"
+              }
+            ].map((tech, idx) => (
+              <div
+                key={idx}
+                className="glass-card card-glow p-6 rounded-2xl flex flex-col items-center justify-center text-center hover-lift transition-all duration-300"
+              >
+                <div className={`w-14 h-14 rounded-xl ${tech.bg} flex items-center justify-center mb-4 icon-glow`}>
+                  <span className={`material-symbols-outlined text-[32px] ${tech.color}`}>
+                    {tech.icon}
+                  </span>
+                </div>
+                <h4 className="font-title text-sm font-bold text-on-surface mb-2">
+                  {tech.name}
+                </h4>
+                <p className="font-body text-[10px] text-on-surface-variant leading-tight">
+                  {tech.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Final */}
       <section className="py-20 bg-gradient-to-br from-primary to-secondary text-on-primary text-center px-6 relative overflow-hidden section-glow">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),transparent_70%)] pointer-events-none"></div>
@@ -1292,6 +1383,12 @@ export function Landing() {
               className="hover:text-primary transition-colors"
             >
               Diferenciais
+            </a>
+            <a
+              href="#tecnologias"
+              className="hover:text-primary transition-colors"
+            >
+              Tecnologias
             </a>
           </div>
           <div>

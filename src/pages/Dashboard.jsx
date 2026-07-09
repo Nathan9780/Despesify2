@@ -71,11 +71,16 @@ export function Dashboard() {
   let userPlan = "citizen";
   try {
     const currentUserStr = localStorage.getItem("currentUser");
-    if (currentUserStr) userPlan = JSON.parse(currentUserStr).plan || "citizen";
+    if (currentUserStr) {
+      const parsed = JSON.parse(currentUserStr);
+      if (parsed && typeof parsed === 'object') {
+        userPlan = parsed.plan || "citizen";
+      }
+    }
   } catch(e) {}
 
   if (userPlan === "investor") {
-    return <div className="p-6 bg-gray-50 dark:bg-[#0F1829] min-h-screen"></div>;
+    return <Navigate to="/vitrine" replace />;
   }
 
   // Estatísticas calculadas a partir dos dados reais

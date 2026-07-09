@@ -97,15 +97,13 @@ export function Login() {
         return;
       }
 
-      // Sucesso!
-      if (data.user) {
-        // Opcional: salva o usuário no localStorage para compatibilidade com outras partes do sistema
-        localStorage.setItem("currentUser", JSON.stringify(data.user));
-        navigate("/dashboard");
-      } else {
+      // Sucesso! O onAuthStateChange vai cuidar da navegação correta
+      // com a lógica de plano. Não navegar aqui para evitar conflito.
+      if (!data.user) {
         setError("Erro desconhecido. Tente novamente.");
         setIsLoading(false);
       }
+      // isLoading permanece true até o onAuthStateChange disparar e navegar
     } catch (err) {
       console.error("Erro inesperado:", err);
       setError("Erro inesperado. Tente novamente.");

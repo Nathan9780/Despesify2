@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { Landing } from "./pages/Landing";
 import { Login } from "./pages/Login";
@@ -19,11 +19,14 @@ import { ProjectDetails } from "./pages/ProjectDetails";
 import { WithPlan } from "./components/layout/WithPlan";
 import { Toaster } from "react-hot-toast";
 
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
 function App() {
   return (
-    <BrowserRouter>
-      <Toaster position="top-right" />
-      <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Toaster position="top-right" />
+        <Routes>
         {/* Rotas públicas de acesso */}
         <Route path="/" element={<Landing />} />
         <Route path="login" element={<Login />} />
@@ -89,8 +92,12 @@ function App() {
           } />
           <Route path="settings" element={<Settings />} />
         </Route>
+        
+        {/* Rota fallback (404) para evitar tela branca em URLs inválidas */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
