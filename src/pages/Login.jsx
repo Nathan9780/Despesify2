@@ -160,6 +160,38 @@ export function Login() {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    setError("");
+    setInfoMessage("");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: "visitante@despesify.com",
+        password: "visitante123",
+      });
+
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          setError("Para o visitante funcionar, crie a conta 'visitante@despesify.com' com senha 'visitante123' no Supabase.");
+        } else {
+          setError(`Erro do Supabase: ${error.message} (Confirme o email do visitante no painel!)`);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      if (!data.user) {
+        setError("Erro desconhecido. Tente novamente.");
+        setIsLoading(false);
+      }
+      // O redirecionamento acontece no onAuthStateChange
+    } catch (err) {
+      console.error("Erro inesperado:", err);
+      setError("Erro inesperado. Tente novamente.");
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden font-body select-none">
       {/* Background blobs */}
@@ -309,6 +341,16 @@ export function Login() {
             />
           </svg>
           {isLoading ? "Carregando..." : "Entrar com Google"}
+        </button>
+
+        <button
+          onClick={handleGuestLogin}
+          type="button"
+          disabled={isLoading}
+          className="w-full py-2.5 bg-secondary hover:bg-secondary/90 text-on-secondary font-label text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2.5 active:scale-95 mb-6 disabled:opacity-50 disabled:pointer-events-none shadow-sm"
+        >
+          <span className="material-symbols-outlined text-lg">person_search</span>
+          {isLoading ? "Carregando..." : "Entrar como Visitante"}
         </button>
 
         <div className="text-center font-label text-xs text-on-surface-variant">
