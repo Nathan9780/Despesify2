@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "../components/layout/ui/Logo";
+import { supabase } from "../lib/supabase";
 
 export function PlanSelection() {
   const navigate = useNavigate();
@@ -38,18 +39,19 @@ export function PlanSelection() {
     setSelectedPlan(planKey);
   };
 
-  const handleConfirmPlan = () => {
+  const handleConfirmPlan = async () => {
     if (!selectedPlan) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      // 1. Update currentUser
-      const updatedUser = { ...user, plan: selectedPlan };
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
 
-      // 2. Update users list in database (localStorage)
-      const usersStr = localStorage.getItem("users");
-      if (usersStr) {
+    // 1. Update currentUser in localStorage
+    const updatedUser = { ...user, plan: selectedPlan };
+    localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+
+    // 2. Update users list in localStorage
+    const usersStr = localStorage.getItem("users");
+    if (usersStr) {
+      try {
         const users = JSON.parse(usersStr);
         const updatedUsers = users.map((u) =>
           u.email.toLowerCase() === user.email.toLowerCase()
@@ -57,11 +59,26 @@ export function PlanSelection() {
             : u,
         );
         localStorage.setItem("users", JSON.stringify(updatedUsers));
-      }
+      } catch (e) {}
+    }
 
-      setIsSubmitting(false);
-      navigate("/dashboard");
-    }, 1000);
+    // 3. Sincroniza com o banco de dados Supabase (para a busca de Mensagens funcionar)
+    try {
+      const { data: { user: sbUser } } = await supabase.auth.getUser();
+      if (sbUser) {
+        await supabase.from('profiles').upsert({
+          id: sbUser.id,
+          email: sbUser.email,
+          name: updatedUser.name || sbUser.email.split('@')[0],
+          plan: selectedPlan,
+        }, { onConflict: 'id' });
+      }
+    } catch (e) {
+      console.warn('Não foi possível sincronizar plano com Supabase:', e);
+    }
+
+    setIsSubmitting(false);
+    navigate("/dashboard");
   };
 
   const plans = [

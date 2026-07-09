@@ -47,23 +47,68 @@ export function Messages() {
     }
   }, [showNewConversation, newConvName]);
 
-  // Buscar usuários reais no Supabase
+  // Buscar usuários para o modal de Nova Conversa
   const handleSearchProfiles = async (query) => {
     setNewConvName(query);
-    if (!query) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, name, email, plan')
-        .limit(10);
-      if (data) setProfilesList(data);
-      return;
+    const term = (query || "").toLowerCase();
+
+    // 1. Busca Local
+    let localUsers = [];
+    try {
+      const usersStr = localStorage.getItem("users");
+      if (usersStr) {
+        const parsed = JSON.parse(usersStr);
+        localUsers = parsed.filter(u => 
+          !term || 
+          (u.name && u.name.toLowerCase().includes(term)) || 
+          (u.email && u.email.toLowerCase().includes(term))
+        );
+      }
+    } catch (e) {}
+
+    // 2. Busca Supabase
+    let supabaseUsers = [];
+    try {
+      let queryBuilder = supabase.from('profiles').select('id, name, email, plan');
+      if (term) {
+        queryBuilder = queryBuilder.or(`name.ilike.%${term}%,email.ilike.%${term}%`).limit(5);
+      } else {
+        queryBuilder = queryBuilder.limit(10);
+      }
+      const { data } = await queryBuilder;
+      if (data) supabaseUsers = data;
+    } catch (err) {}
+
+    // 3. Combina e remove duplicatas
+    const allUsers = [...localUsers, ...supabaseUsers];
+    let uniqueUsers = Array.from(new Map(allUsers.map(u => [u.email, u])).values());
+
+    // 4. Remove o usuário atual da lista
+    try {
+      const currentUserStr = localStorage.getItem("currentUser");
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr);
+        uniqueUsers = uniqueUsers.filter(u => u.email.toLowerCase() !== currentUser.email.toLowerCase());
+      }
+    } catch (e) {}
+
+    // 5. Fallback (Mocks) se não achar nada
+    if (uniqueUsers.length === 0) {
+      const mockProfiles = [
+        { id: 'mock-1', name: 'João Silva', email: 'joao@example.com', plan: 'investor' },
+        { id: 'mock-2', name: 'Maria Souza', email: 'maria@empresa.com', plan: 'enterprise' },
+        { id: 'mock-3', name: 'Carlos Tech', email: 'carlos@tech.com', plan: 'citizen' }
+      ];
+      if (term) {
+        uniqueUsers = mockProfiles.filter(p => 
+          p.name.toLowerCase().includes(term) || p.email.toLowerCase().includes(term)
+        );
+      } else {
+        uniqueUsers = mockProfiles;
+      }
     }
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, name, email, plan')
-      .ilike('name', `%${query}%`)
-      .limit(5);
-    if (data) setProfilesList(data);
+
+    setProfilesList(uniqueUsers.slice(0, 10));
   };
 
   // (Removed duplicate handleCreateConversation)
@@ -107,6 +152,72 @@ export function Messages() {
   // Busca global de usuários para o sidebar (estilo GitHub)
   const [globalProfilesList, setGlobalProfilesList] = useState([]);
   const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [suggestedProfiles, setSuggestedProfiles] = useState([]);
+
+  // Busca sugestões iniciais ao focar no campo
+  const handleSearchFocus = async () => {
+    setIsSearchFocused(true);
+    if (suggestedProfiles.length === 0) {
+      setIsSearchingGlobal(true);
+      
+      // Busca da lista simulada local primeiro
+      let localUsers = [];
+      try {
+        const usersStr = localStorage.getItem("users");
+        if (usersStr) {
+          localUsers = JSON.parse(usersStr);
+        }
+      } catch (e) {}
+
+      // Busca do Supabase
+      let supabaseUsers = [];
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, email, plan')
+          .limit(8);
+        
+        console.log("Supabase initial fetch data:", data, "error:", error);
+        
+        if (data) supabaseUsers = data;
+      } catch (err) {
+        console.error("Supabase initial fetch exception:", err);
+      }
+
+      // Combina e remove duplicatas por email
+      const allUsers = [...localUsers, ...supabaseUsers];
+      let uniqueUsers = Array.from(new Map(allUsers.map(u => [u.email, u])).values());
+
+      // Remove o usuário atual da lista
+      try {
+        const currentUserStr = localStorage.getItem("currentUser");
+        if (currentUserStr) {
+          const currentUser = JSON.parse(currentUserStr);
+          uniqueUsers = uniqueUsers.filter(u => u.email.toLowerCase() !== currentUser.email.toLowerCase());
+        }
+      } catch (e) {}
+      
+      console.log("Combined initial unique users:", uniqueUsers);
+
+      if (uniqueUsers.length > 0) {
+        setSuggestedProfiles(uniqueUsers.slice(0, 8));
+      } else {
+        // Fallback final
+        setSuggestedProfiles([
+          { id: 'mock-1', name: 'João Silva', email: 'joao@example.com', plan: 'investor' },
+          { id: 'mock-2', name: 'Maria Souza', email: 'maria@empresa.com', plan: 'enterprise' },
+          { id: 'mock-3', name: 'Carlos Tech', email: 'carlos@tech.com', plan: 'citizen' }
+        ]);
+      }
+      setIsSearchingGlobal(false);
+    }
+  };
+
+  const handleSearchBlur = () => {
+    // Delay para permitir o click no item antes de fechar
+    setTimeout(() => setIsSearchFocused(false), 200);
+  };
 
   useEffect(() => {
     const searchGlobalProfiles = async () => {
@@ -116,28 +227,58 @@ export function Messages() {
       }
       setIsSearchingGlobal(true);
       
+      const term = searchTerm.toLowerCase();
+
+      // Busca local
+      let localUsers = [];
+      try {
+        const usersStr = localStorage.getItem("users");
+        if (usersStr) {
+          const parsed = JSON.parse(usersStr);
+          localUsers = parsed.filter(u => 
+            (u.name && u.name.toLowerCase().includes(term)) || 
+            (u.email && u.email.toLowerCase().includes(term))
+          );
+        }
+      } catch (e) {}
+
+      // Busca Supabase
+      let supabaseUsers = [];
       try {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, name, email, plan')
-          .ilike('name', `%${searchTerm}%`)
+          .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
           .limit(5);
 
-        if (data && data.length > 0) {
-          setGlobalProfilesList(data);
-        } else {
-          // Fallback if table is empty or fails
-          const mockProfiles = [
-            { id: 'mock-1', name: 'João Silva', email: 'joao@example.com', plan: 'investor' },
-            { id: 'mock-2', name: 'Maria Souza', email: 'maria@empresa.com', plan: 'enterprise' },
-            { id: 'mock-3', name: 'Carlos Tech', email: 'carlos@tech.com', plan: 'citizen' }
-          ].filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-          setGlobalProfilesList(mockProfiles);
+        if (data) supabaseUsers = data;
+      } catch (err) {}
+
+      const allUsers = [...localUsers, ...supabaseUsers];
+      let uniqueUsers = Array.from(new Map(allUsers.map(u => [u.email, u])).values());
+
+      // Remove o usuário atual da lista
+      try {
+        const currentUserStr = localStorage.getItem("currentUser");
+        if (currentUserStr) {
+          const currentUser = JSON.parse(currentUserStr);
+          uniqueUsers = uniqueUsers.filter(u => u.email.toLowerCase() !== currentUser.email.toLowerCase());
         }
-      } catch (err) {
-        setGlobalProfilesList([]);
+      } catch (e) {}
+
+      if (uniqueUsers.length === 0) {
+        const mockProfiles = [
+          { id: 'mock-1', name: 'João Silva', email: 'joao@example.com', plan: 'investor' },
+          { id: 'mock-2', name: 'Maria Souza', email: 'maria@empresa.com', plan: 'enterprise' },
+          { id: 'mock-3', name: 'Carlos Tech', email: 'carlos@tech.com', plan: 'citizen' }
+        ].filter(p => 
+          p.name.toLowerCase().includes(term) ||
+          p.email.toLowerCase().includes(term)
+        );
+        uniqueUsers = mockProfiles;
       }
-      
+
+      setGlobalProfilesList(uniqueUsers.slice(0, 8));
       setIsSearchingGlobal(false);
     };
 
@@ -147,6 +288,17 @@ export function Messages() {
 
     return () => clearTimeout(debounce);
   }, [searchTerm]);
+
+  // Lista a mostrar no dropdown: resultados da busca ou sugestões iniciais
+  const dropdownProfiles = searchTerm.trim() ? globalProfilesList : suggestedProfiles;
+  
+  // O dropdown deve aparecer se:
+  // 1. O campo estiver focado E
+  // 2. Ocorrer qualquer uma dessas condições:
+  //    - O usuário digitou algo (mesmo que não ache nada, para mostrar 'Nenhum usuário encontrado')
+  //    - Tem sugestões para mostrar
+  //    - Está buscando no momento
+  const showDropdown = isSearchFocused && (searchTerm.trim().length > 0 || suggestedProfiles.length > 0 || isSearchingGlobal);
 
   const handleStartChatWithProfile = async (profile) => {
     try {
@@ -160,6 +312,7 @@ export function Messages() {
       toast.success(`Conversa com ${profile.name} iniciada!`);
       setSearchTerm("");
       setGlobalProfilesList([]);
+      setIsSearchFocused(false);
     } catch (err) {
       toast.error(`Erro ao criar conversa: ${err.message}`);
     }
@@ -421,39 +574,57 @@ export function Messages() {
                 </span>
                 <input
                   type="text"
-                  placeholder="Buscar usuários ou conversas..."
+                  placeholder="Buscar por nome ou email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
                   className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm text-sm transition-all"
                 />
                 
-                {/* GitHub-style dropdown for users */}
-                {searchTerm && (globalProfilesList.length > 0 || isSearchingGlobal) && (
+                {/* Dropdown de sugestões e resultados */}
+                {showDropdown && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto animate-fade-up">
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100">
-                      Usuários encontrados
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[14px]">{searchTerm ? 'search' : 'group'}</span>
+                      {searchTerm ? 'Resultados da busca' : 'Sugestões de usuários'}
                     </div>
                     {isSearchingGlobal ? (
-                      <div className="p-4 text-center text-sm text-gray-500">Buscando...</div>
+                      <div className="p-4 text-center text-sm text-gray-500 flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        Buscando...
+                      </div>
                     ) : (
-                      globalProfilesList.map(profile => (
+                      dropdownProfiles.map(profile => (
                         <div 
                           key={profile.id}
                           className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-b-0 flex items-center gap-3 transition-colors"
-                          onClick={() => handleStartChatWithProfile(profile)}
+                          onMouseDown={() => handleStartChatWithProfile(profile)}
                         >
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-600 text-xs flex-shrink-0">
-                            {profile.name?.charAt(0) || "?"}
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0 shadow-sm">
+                            {profile.name?.charAt(0)?.toUpperCase() || profile.email?.charAt(0)?.toUpperCase() || '?'}
                           </div>
-                          <div className="overflow-hidden">
-                            <p className="text-sm font-medium text-gray-800 truncate">{profile.name}</p>
+                          <div className="overflow-hidden flex-1">
+                            <p className="text-sm font-medium text-gray-800 truncate">{profile.name || 'Sem nome'}</p>
                             <p className="text-xs text-gray-500 truncate">{profile.email}</p>
                           </div>
-                          <span className="material-symbols-outlined text-gray-300 ml-auto text-sm">
-                            chat_bubble
-                          </span>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                              profile.plan === 'investor' ? 'bg-blue-100 text-blue-600' :
+                              profile.plan === 'enterprise' ? 'bg-purple-100 text-purple-600' :
+                              'bg-gray-100 text-gray-500'
+                            }`}>
+                              {profile.plan === 'investor' ? 'Investidor' : profile.plan === 'enterprise' ? 'Empresa' : 'Cidadão'}
+                            </span>
+                            <span className="material-symbols-outlined text-blue-300 text-[14px]">chat_bubble</span>
+                          </div>
                         </div>
                       ))
+                    )}
+                    {!isSearchingGlobal && dropdownProfiles.length === 0 && (
+                      <div className="p-4 text-center text-sm text-gray-400">
+                        Nenhum usuário encontrado
+                      </div>
                     )}
                   </div>
                 )}

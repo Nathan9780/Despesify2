@@ -18,7 +18,19 @@ export function Login() {
       if (session?.user) {
         setIsLoading(true);
         const sbUser = session.user;
-        
+        const userName = sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email.split('@')[0];
+
+        // Salva/atualiza o perfil na tabela pública do Supabase (para a busca de Mensagens funcionar)
+        try {
+          await supabase.from('profiles').upsert({
+            id: sbUser.id,
+            email: sbUser.email,
+            name: userName,
+          }, { onConflict: 'id' });
+        } catch (e) {
+          console.warn('Não foi possível salvar perfil no Supabase:', e);
+        }
+
         // 1. Procurar se o usuário já existe na lista simulada do localStorage
         const usersStr = localStorage.getItem("users");
         const users = usersStr ? JSON.parse(usersStr) : [];
@@ -30,9 +42,14 @@ export function Login() {
             ...existingUser,
             id: sbUser.id,
             email: sbUser.email,
-            name: existingUser.name || sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email.split('@')[0],
+            name: existingUser.name || userName,
           };
           localStorage.setItem("currentUser", JSON.stringify(mergedUser));
+
+          // Atualiza o plano no Supabase profiles também
+          if (mergedUser.plan) {
+            supabase.from('profiles').update({ plan: mergedUser.plan }).eq('id', sbUser.id).then(() => {});
+          }
           
           if (!mergedUser.plan) {
             navigate("/select-plan");
@@ -44,12 +61,12 @@ export function Login() {
           const newUser = {
             id: sbUser.id,
             email: sbUser.email,
-            name: sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email.split('@')[0],
+            name: userName,
             phone: sbUser.user_metadata?.phone || "",
             state: "",
             city: "",
             cpf: "",
-            plan: null, // Será escolhido na tela de seleção de plano
+            plan: null,
           };
           users.push(newUser);
           localStorage.setItem("users", JSON.stringify(users));
