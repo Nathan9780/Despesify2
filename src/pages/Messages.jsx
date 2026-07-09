@@ -560,12 +560,12 @@ export function Messages() {
 
       {/* Layout principal: Chat */}
       <div
-        className="glass-card rounded-2xl overflow-hidden animate-fade-up"
-        style={{ animationDelay: "0.15s" }}
+        className="glass-card rounded-2xl overflow-hidden animate-fade-up flex-1 mb-6 flex flex-col"
+        style={{ animationDelay: "0.15s", minHeight: "600px", maxHeight: "80vh" }}
       >
-        <div className="flex flex-col md:flex-row h-[600px] md:h-[70vh]">
+        <div className="flex flex-col md:flex-row h-full">
           {/* Sidebar: Lista de Conversas */}
-          <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-gray-200/50 flex flex-col bg-white/30 backdrop-blur-sm">
+          <div className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-gray-200/50 flex-col bg-white/30 backdrop-blur-sm ${selectedConversation ? 'hidden md:flex' : 'flex'} h-full`}>
             {/* Busca e Filtros */}
             <div className="p-3 border-b border-gray-200/50">
               <div className="relative">
@@ -732,10 +732,16 @@ export function Messages() {
 
           {/* Área Principal de Mensagens */}
           {selectedConversation ? (
-            <div className="flex-1 flex flex-col h-full bg-white relative">
+            <div className={`flex-1 flex-col h-full bg-white relative ${selectedConversation ? 'flex' : 'hidden md:flex'}`}>
               {/* Header do Chat */}
-              <div className="h-16 px-6 border-b border-gray-200 flex items-center justify-between bg-white/80 backdrop-blur-sm z-10">
-                <div className="flex items-center gap-3">
+              <div className="h-16 px-4 md:px-6 border-b border-gray-200 flex items-center justify-between bg-white/80 backdrop-blur-sm z-10 flex-shrink-0">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <button 
+                    onClick={() => setSelectedConversation(null)}
+                    className="md:hidden p-1.5 -ml-2 rounded-lg hover:bg-gray-100 transition text-gray-600"
+                  >
+                    <span className="material-symbols-outlined">arrow_back</span>
+                  </button>
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[selectedConversation.type] || typeColors.default}`}
                   >
@@ -880,7 +886,7 @@ export function Messages() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white/20 backdrop-blur-sm">
+            <div className="flex-1 flex-col items-center justify-center text-center p-8 bg-white/20 backdrop-blur-sm hidden md:flex">
               <span className="material-symbols-outlined text-6xl text-gray-300">
                 chat_bubble_outline
               </span>
