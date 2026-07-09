@@ -21,6 +21,8 @@ export function Team() {
   const [showModal, setShowModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
+  const [modalError, setModalError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   // Estado do formulário de adição/edição
   const [formData, setFormData] = useState({
@@ -107,6 +109,8 @@ export function Team() {
 
   // Salvar (criar ou atualizar)
   const handleSaveMember = async () => {
+    setModalError("");
+    setIsSaving(true);
     const payload = {
       name: formData.name,
       role: formData.role,
@@ -116,17 +120,24 @@ export function Team() {
       phone: formData.phone,
       email: formData.email,
       type: formData.type,
-      work_days: formData.workDays,
       status: "pending",
     };
 
-    if (editingMember) {
-      await updateEmployee.mutateAsync({ id: editingMember.id, ...payload });
-    } else {
-      await createEmployee.mutateAsync(payload);
+    try {
+      if (editingMember) {
+        await updateEmployee.mutateAsync({ id: editingMember.id, ...payload });
+      } else {
+        await createEmployee.mutateAsync(payload);
+      }
+      setShowModal(false);
+      setEditingMember(null);
+      setModalError("");
+    } catch (err) {
+      console.error("Erro ao salvar membro:", err);
+      setModalError(err?.message || "Erro ao salvar. Verifique os dados e tente novamente.");
+    } finally {
+      setIsSaving(false);
     }
-    setShowModal(false);
-    setEditingMember(null);
   };
 
   // Pagar funcionário
@@ -232,9 +243,17 @@ export function Team() {
           backdrop-filter: blur(4px);
         }
         .profile-sidebar {
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(8px);
+          background: linear-gradient(160deg, #0f172a 0%, #1e293b 60%, #1e3a5f 100%);
+          backdrop-filter: blur(12px);
+          color: #f1f5f9;
         }
+        .profile-sidebar h2,
+        .profile-sidebar h4 { color: #f8fafc; }
+        .profile-sidebar p,
+        .profile-sidebar span { color: #94a3b8; }
+        .profile-sidebar .font-medium,
+        .profile-sidebar .font-bold { color: #e2e8f0; }
+        .profile-sidebar .border-b { border-color: rgba(255,255,255,0.1); }
         .star-filled { color: #f59e0b; }
         .star-empty { color: #d1d5db; }
       `}</style>
@@ -468,9 +487,9 @@ export function Team() {
 
       {/* Modal de Adicionar/Editar Membro */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay p-4 sm:p-6" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-800">
                 {editingMember ? "Editar Membro" : "Adicionar Membro"}
               </h3>
@@ -478,124 +497,133 @@ export function Team() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSaveMember(); }}>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nome</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Nome completo"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Cargo</label>
-                <input
-                  type="text"
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Ex: Pedreiro"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Categoria</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option>Construção</option>
-                  <option>Elétrica</option>
-                  <option>Hidráulica</option>
-                  <option>Pintura</option>
-                  <option>Administrativo</option>
-                  <option>Gerência</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Telefone</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="email@exemplo.com"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Salário (R$)</label>
-                <input
-                  type="number"
-                  value={formData.salary}
-                  onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="0,00"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Data de Início</label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tipo</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="employee">Funcionário</option>
-                  <option value="contractor">Prestador de Serviço</option>
-                  <option value="investor">Investidor</option>
-                  <option value="admin">Administrador</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Dias Trabalhados</label>
-                <div className="flex flex-wrap gap-2">
-                  {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"].map(day => (
-                    <label key={day} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border cursor-pointer hover:bg-gray-100">
-                      <input
-                        type="checkbox"
-                        checked={formData.workDays?.includes(day)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({ ...formData, workDays: [...(formData.workDays || []), day] });
-                          } else {
-                            setFormData({ ...formData, workDays: (formData.workDays || []).filter(d => d !== day) });
-                          }
-                        }}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm">{day}</span>
-                    </label>
-                  ))}
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveMember(); }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nome</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Nome completo"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Cargo</label>
+                  <input
+                    type="text"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Ex: Pedreiro"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Categoria</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option>Construção</option>
+                    <option>Elétrica</option>
+                    <option>Hidráulica</option>
+                    <option>Pintura</option>
+                    <option>Administrativo</option>
+                    <option>Gerência</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Telefone</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Salário (R$)</label>
+                  <input
+                    type="number"
+                    value={formData.salary}
+                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="0,00"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Data de Início</label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tipo</label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="employee">Funcionário</option>
+                    <option value="contractor">Prestador de Serviço</option>
+                    <option value="investor">Investidor</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Dias Trabalhados</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"].map(day => (
+                      <label key={day} className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border cursor-pointer hover:bg-gray-100">
+                        <input
+                          type="checkbox"
+                          checked={formData.workDays?.includes(day)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({ ...formData, workDays: [...(formData.workDays || []), day] });
+                            } else {
+                              setFormData({ ...formData, workDays: (formData.workDays || []).filter(d => d !== day) });
+                            }
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm">{day}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
+              {modalError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  ⚠️ {modalError}
+                </div>
+              )}
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition"
+                disabled={isSaving}
+                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white py-2 rounded-lg font-medium transition flex items-center justify-center gap-2"
               >
-                {editingMember ? "Salvar Alterações" : "Adicionar"}
+                {isSaving && <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />}
+                {isSaving ? "Salvando..." : editingMember ? "Salvar Alterações" : "Adicionar"}
               </button>
             </form>
           </div>
