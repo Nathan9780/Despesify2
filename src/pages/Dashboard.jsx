@@ -118,10 +118,8 @@ export function Dashboard() {
     { id: 4, text: "Tarefa vence amanhã", time: "1 dia" },
   ];
 
-  // Projetos públicos
-  const publicProjects = projects
-    .filter((p) => p.visibility === "public")
-    .slice(0, 2);
+  // Projetos públicos de outras pessoas
+  const publicProjects = (dashboardData?.projects?.publicList || []).slice(0, 2);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

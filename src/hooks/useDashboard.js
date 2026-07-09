@@ -23,6 +23,7 @@ export const useDashboard = () => {
 
       const [
         projectsResult,
+        publicProjectsResult,
         financesResult,
         employeesResult,
         materialsResult,
@@ -31,8 +32,16 @@ export const useDashboard = () => {
       ] = await Promise.all([
         supabase
           .from("projects")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", userId),
+          .select("*", { count: "exact" })
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("projects")
+          .select("*")
+          .eq("visibility", "public")
+          .neq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(5),
         supabase.from("projects").select("budget, spent").eq("user_id", userId),
         supabase
           .from("employees")
@@ -68,7 +77,11 @@ export const useDashboard = () => {
       const totalRaised = investorsData.reduce((s, i) => s + (i.invested || 0), 0);
 
       return {
-        projects: { total: projectsResult.count || 0 },
+        projects: { 
+          total: projectsResult.count || 0,
+          list: projectsResult.data || [],
+          publicList: publicProjectsResult.data || []
+        },
         finances: { totalBudget, totalSpent, available },
         employees: { active: employeesResult.count || 0 },
         materials: { stockValue },
