@@ -21,23 +21,15 @@ export function Team() {
     updateTask,
   } = useTasks();
 
-  const {
-    timeOffs,
-    addTimeOff,
-    deleteTimeOff,
-  } = useTimeOff();
-
-  const {
-    reviews,
-    addReview,
-  } = usePerformanceReviews(selectedMember?.id);
-
   // Estados para filtros e busca
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("Todos");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [selectedMember, setSelectedMember] = useState(null);
   const [showModal, setShowModal] = useState(false);
+
+  const { timeOffs, addTimeOff, deleteTimeOff } = useTimeOff();
+  const { reviews, addReview } = usePerformanceReviews(selectedMember?.id);
   const [showProfile, setShowProfile] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [modalError, setModalError] = useState("");
