@@ -114,7 +114,7 @@ export function Messages() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        uniqueUsers = uniqueUsers.filter(u => u.id !== user.id);
+        uniqueUsers = uniqueUsers.filter(u => u.email?.toLowerCase() !== user.email?.toLowerCase());
       }
     } catch (e) {}
 
@@ -221,7 +221,7 @@ export function Messages() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          uniqueUsers = uniqueUsers.filter(u => u.id !== user.id);
+          uniqueUsers = uniqueUsers.filter(u => u.email?.toLowerCase() !== user.email?.toLowerCase());
         }
       } catch (e) {}
 
@@ -288,7 +288,7 @@ export function Messages() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          uniqueUsers = uniqueUsers.filter(u => u.id !== user.id);
+          uniqueUsers = uniqueUsers.filter(u => u.email?.toLowerCase() !== user.email?.toLowerCase());
         }
       } catch (e) {}
 
