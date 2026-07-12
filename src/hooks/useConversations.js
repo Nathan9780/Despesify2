@@ -22,6 +22,8 @@ export const useConversations = () => {
         .select(
           `
           *,
+          user_profile:user_id (id, name, email),
+          participant_profile:participant_id (id, name, email),
           messages: messages(
             id,
             content,

@@ -163,6 +163,20 @@ export function Messages() {
     }
   }, [conversations, selectedConversation]);
 
+  const getOtherName = (conv) => {
+    if (!conv) return '';
+    if (conv.user_id === currentUserId) return conv.participant_profile?.name || conv.name;
+    if (conv.participant_id === currentUserId) return conv.user_profile?.name || conv.name;
+    return conv.name;
+  };
+
+  const getOtherProfile = (conv) => {
+    if (!conv) return null;
+    if (conv.user_id === currentUserId) return conv.participant_profile;
+    if (conv.participant_id === currentUserId) return conv.user_profile;
+    return null;
+  };
+
   // Filtrar conversas
   const filteredConversations = useMemo(() => {
     if (!conversations) return [];
@@ -170,12 +184,12 @@ export function Messages() {
       if (filterType !== "all" && chat.type !== filterType) return false;
       if (
         searchTerm &&
-        !chat.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        !getOtherName(chat)?.toLowerCase().includes(searchTerm.toLowerCase())
       )
         return false;
       return true;
     });
-  }, [conversations, filterType, searchTerm]);
+  }, [conversations, filterType, searchTerm, currentUserId]);
 
   // Busca global de usuários para o sidebar (estilo GitHub)
   const [globalProfilesList, setGlobalProfilesList] = useState([]);
@@ -826,7 +840,7 @@ export function Messages() {
                           <div
                             className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[chat.type] || typeColors.default}`}
                           >
-                            {chat.avatar || chat.name?.charAt(0) || "?"}
+                            {chat.avatar || getOtherName(chat)?.charAt(0) || "?"}
                           </div>
                           {chat.online && (
                             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white online-dot"></div>
@@ -835,7 +849,7 @@ export function Messages() {
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start">
                             <p className="font-semibold text-sm text-gray-800 truncate">
-                              {chat.name}
+                              {getOtherName(chat)}
                             </p>
                             <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
                               {lastMessage
@@ -881,12 +895,12 @@ export function Messages() {
                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[selectedConversation.type] || typeColors.default}`}
                   >
                     {selectedConversation.avatar ||
-                      selectedConversation.name?.charAt(0) ||
+                      getOtherName(selectedConversation)?.charAt(0) ||
                       "?"}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-800">
-                      {selectedConversation.name}
+                      {getOtherName(selectedConversation)}
                     </h3>
                     <p className="text-xs text-green-600 flex items-center gap-1">
                       {selectedConversation.online && (
@@ -944,7 +958,7 @@ export function Messages() {
                             setShowOptionsMenu(false);
                             const isGroup = showGroups;
                             const label = isGroup ? 'grupo' : 'conversa';
-                            if (window.confirm(`Apagar ${label} "${selectedConversation.name}"? Todas as mensagens serão removidas permanentemente.`)) {
+                            if (window.confirm(`Apagar ${label} "${getOtherName(selectedConversation)}"? Todas as mensagens serão removidas permanentemente.`)) {
                               try {
                                 if (isGroup) {
                                   await deleteGroup.mutateAsync(selectedConversation.id);
@@ -1208,11 +1222,11 @@ export function Messages() {
                 className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-xl ${typeColors[selectedConversation.type] || typeColors.default}`}
               >
                 {selectedConversation.avatar ||
-                  selectedConversation.name?.charAt(0) ||
+                  getOtherName(selectedConversation)?.charAt(0) ||
                   "?"}
               </div>
               <h4 className="text-lg font-bold text-gray-800 mt-3">
-                {selectedConversation.name}
+                {getOtherName(selectedConversation)}
               </h4>
               <p className="text-sm text-gray-500">
                 {typeLabels[selectedConversation.type] || typeLabels.default}
@@ -1232,24 +1246,29 @@ export function Messages() {
             <div className="mt-6 space-y-4">
               <div className="border-b border-gray-200 pb-3">
                 <h5 className="font-semibold text-gray-700 text-sm">Contato</h5>
-                <div className="mt-2 space-y-1 text-sm">
-                  <p>
-                    <span className="text-gray-500">Email:</span>{" "}
-                    {selectedConversation.email || "Não informado"}
-                  </p>
-                  {selectedConversation.phone && (
-                    <p>
-                      <span className="text-gray-500">Telefone:</span>{" "}
-                      {selectedConversation.phone}
-                    </p>
-                  )}
-                  {selectedConversation.rating && (
-                    <p>
-                      <span className="text-gray-500">Avaliação:</span> ⭐{" "}
-                      {selectedConversation.rating} / 5
-                    </p>
-                  )}
-                </div>
+                {(function() {
+                  const profile = getOtherProfile(selectedConversation);
+                  return (
+                    <div className="mt-2 space-y-1 text-sm">
+                      <p>
+                        <span className="text-gray-500">Email:</span>{" "}
+                        {profile?.email || selectedConversation.email || "Não informado"}
+                      </p>
+                      {selectedConversation.phone && (
+                        <p>
+                          <span className="text-gray-500">Telefone:</span>{" "}
+                          {selectedConversation.phone}
+                        </p>
+                      )}
+                      {selectedConversation.rating && (
+                        <p>
+                          <span className="text-gray-500">Avaliação:</span>⭐{" "}
+                          {selectedConversation.rating} / 5
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {selectedConversation.type === "investor" && (
