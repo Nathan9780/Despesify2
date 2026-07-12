@@ -22,8 +22,6 @@ export const useConversations = () => {
         .select(
           `
           *,
-          user_profile:user_id (id, name, email),
-          participant_profile:participant_id (id, name, email),
           messages: messages(
             id,
             content,
@@ -37,7 +35,31 @@ export const useConversations = () => {
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+
+      const convs = data || [];
+
+      // Buscar perfis dos participantes para exibir nome correto
+      const profileIds = new Set();
+      convs.forEach(c => {
+        if (c.user_id) profileIds.add(c.user_id);
+        if (c.participant_id) profileIds.add(c.participant_id);
+      });
+      const profileMap = {};
+      if (profileIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, name, email")
+          .in("id", [...profileIds]);
+        if (profiles) {
+          profiles.forEach(p => { profileMap[p.id] = p; });
+        }
+      }
+
+      return convs.map(c => ({
+        ...c,
+        user_profile: profileMap[c.user_id] || null,
+        participant_profile: profileMap[c.participant_id] || null,
+      }));
     },
     staleTime: 0, // Sempre atualizar
   });
