@@ -103,18 +103,20 @@ export const useConversations = () => {
 
   const deleteConversation = useMutation({
     mutationFn: async (conversationId) => {
-      // Deletar mensagens primeiro (FK constraint)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
       const { error: msgError } = await supabase
         .from("messages")
         .delete()
         .eq("conversation_id", conversationId);
       if (msgError) throw msgError;
 
-      // Deletar a conversa
       const { error } = await supabase
         .from("conversations")
         .delete()
-        .eq("id", conversationId);
+        .eq("id", conversationId)
+        .eq("user_id", user.id);
       if (error) throw error;
     },
     onSuccess: () => {

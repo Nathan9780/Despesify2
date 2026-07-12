@@ -51,6 +51,35 @@ export const useGroupConversations = () => {
     },
   });
 
+  const deleteGroup = useMutation({
+    mutationFn: async (groupId) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { error: msgError } = await supabase
+        .from("messages")
+        .delete()
+        .eq("conversation_id", groupId);
+      if (msgError) throw msgError;
+
+      const { error: partError } = await supabase
+        .from("group_participants")
+        .delete()
+        .eq("group_id", groupId);
+      if (partError) throw partError;
+
+      const { error } = await supabase
+        .from("group_conversations")
+        .delete()
+        .eq("id", groupId)
+        .eq("created_by", user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["group_conversations"]);
+    },
+  });
+
   const sendGroupMessage = useMutation({
     mutationFn: async ({ group_id, content }) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -71,6 +100,7 @@ export const useGroupConversations = () => {
     isLoading,
     error,
     createGroup,
+    deleteGroup,
     sendGroupMessage,
   };
 };

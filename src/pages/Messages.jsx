@@ -148,7 +148,7 @@ export function Messages() {
     sendMessage,
   } = useMessages(selectedConversation?.id);
 
-  const { groups, isLoading: groupsLoading, createGroup, sendGroupMessage } = useGroupConversations();
+  const { groups, isLoading: groupsLoading, createGroup, deleteGroup, sendGroupMessage } = useGroupConversations();
 
   // Scroll para o final ao carregar mensagens
   useEffect(() => {
@@ -937,20 +937,27 @@ export function Messages() {
                         <button
                           onClick={async () => {
                             setShowOptionsMenu(false);
-                            if (window.confirm(`Apagar conversa com "${selectedConversation.name}"? Todas as mensagens serão removidas permanentemente.`)) {
+                            const isGroup = showGroups;
+                            const label = isGroup ? 'grupo' : 'conversa';
+                            if (window.confirm(`Apagar ${label} "${selectedConversation.name}"? Todas as mensagens serão removidas permanentemente.`)) {
                               try {
-                                await deleteConversation.mutateAsync(selectedConversation.id);
+                                if (isGroup) {
+                                  await deleteGroup.mutateAsync(selectedConversation.id);
+                                } else {
+                                  await deleteConversation.mutateAsync(selectedConversation.id);
+                                }
                                 setSelectedConversation(null);
-                                toast.success('Conversa apagada!');
+                                toast.success(`${label.charAt(0).toUpperCase() + label.slice(1)} apagada!`);
                               } catch (err) {
-                                toast.error('Erro ao apagar conversa: ' + err.message);
+                                toast.error(`Erro ao apagar ${label}: ${err.message}`);
                               }
                             }
                           }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition"
+                          disabled={deleteConversation.isLoading || deleteGroup.isLoading}
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <span className="material-symbols-outlined text-sm">delete</span>
-                          Apagar conversa
+                          Apagar {showGroups ? 'grupo' : 'conversa'}
                         </button>
                       </div>
                     )}
