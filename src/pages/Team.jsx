@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useEmployees } from "../hooks/useEmployees";
+import { useTasks } from "../hooks/useTasks";
+import { usePerformanceReviews } from "../hooks/usePerformanceReviews";
+import { useTimeOff } from "../hooks/useTimeOff";
 
 export function Team() {
   // Dados reais do Supabase
@@ -13,6 +16,22 @@ export function Team() {
     deleteEmployee,
   } = useEmployees();
 
+  const {
+    tasks,
+    updateTask,
+  } = useTasks();
+
+  const {
+    timeOffs,
+    addTimeOff,
+    deleteTimeOff,
+  } = useTimeOff();
+
+  const {
+    reviews,
+    addReview,
+  } = usePerformanceReviews(selectedMember?.id);
+
   // Estados para filtros e busca
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("Todos");
@@ -23,6 +42,25 @@ export function Team() {
   const [editingMember, setEditingMember] = useState(null);
   const [modalError, setModalError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Task assignment state
+  const [showTaskAssign, setShowTaskAssign] = useState(false);
+  const [selectedTaskMember, setSelectedTaskMember] = useState(null);
+
+  // Performance review state (profile sidebar)
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState("");
+
+  // Time off state
+  const [showTimeOff, setShowTimeOff] = useState(false);
+  const [showTimeOffForm, setShowTimeOffForm] = useState(false);
+  const [timeOffFormData, setTimeOffFormData] = useState({
+    employee_id: "",
+    start_date: "",
+    end_date: "",
+    type: "Férias",
+  });
 
   // Estado do formulário de adição/edição
   const [formData, setFormData] = useState({
@@ -264,13 +302,22 @@ export function Team() {
           <h1 className="text-2xl font-bold text-gray-800">Equipe</h1>
           <p className="text-sm text-gray-500">Gerencie toda a mão de obra dos seus projetos.</p>
         </div>
-        <button
-          onClick={handleAddMember}
-          className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0"
-        >
-          <span className="material-symbols-outlined text-lg">person_add</span>
-          Adicionar Membro
-        </button>
+        <div className="flex items-center gap-2 mt-3 sm:mt-0">
+          <button
+            onClick={() => setShowTimeOff(!showTimeOff)}
+            className={`btn-outline-glow px-4 py-2 border rounded-lg text-sm font-medium flex items-center gap-2 ${showTimeOff ? 'bg-purple-600 text-white border-purple-600' : 'border-purple-300 text-purple-600 hover:bg-purple-50'}`}
+          >
+            <span className="material-symbols-outlined text-lg">beach_access</span>
+            Férias
+          </button>
+          <button
+            onClick={handleAddMember}
+            className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-lg">person_add</span>
+            Adicionar Membro
+          </button>
+        </div>
       </div>
 
       {/* Cards de resumo (com dados reais) */}
@@ -478,10 +525,190 @@ export function Team() {
                   >
                     💰
                   </button>
+                  <button
+                    onClick={() => {
+                      setSelectedTaskMember(member);
+                      setShowTaskAssign(true);
+                    }}
+                    className="px-3 py-2 border border-purple-300 rounded-lg hover:bg-purple-50 text-sm text-purple-600"
+                  >
+                    📋 Atribuir
+                  </button>
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Time Off / Vacation Calendar */}
+      {showTimeOff && (
+        <div className="mb-6 animate-fade-up" style={{ animationDelay: "0.25s" }}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+              <span className="material-symbols-outlined text-purple-600">beach_access</span>
+              Registros de Férias e Folgas
+            </h3>
+            <button
+              onClick={() => setShowTimeOffForm(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-lg">add</span>
+              Adicionar Período
+            </button>
+          </div>
+          {timeOffs.length === 0 ? (
+            <div className="glass-card rounded-xl p-8 text-center">
+              <span className="material-symbols-outlined text-5xl text-gray-300">beach_access</span>
+              <p className="text-gray-500 mt-2">Nenhum registro de férias ou folga encontrado.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {timeOffs.map((to) => (
+                <div key={to.id} className="glass-card rounded-xl p-4 flex items-center justify-between hover-lift">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-purple-500 text-2xl">beach_access</span>
+                    <div>
+                      <p className="font-medium text-gray-800">{to.employees?.name || "Funcionário"}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(to.start_date).toLocaleDateString("pt-BR")} — {new Date(to.end_date).toLocaleDateString("pt-BR")}
+                      </p>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${to.type === 'Férias' ? 'bg-green-100 text-green-700' : to.type === 'Folga' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                        {to.type}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { if (window.confirm("Remover este registro?")) deleteTimeOff.mutateAsync(to.id); }}
+                    className="text-red-400 hover:text-red-600"
+                  >
+                    <span className="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Task Assignment Modal */}
+      {showTaskAssign && selectedTaskMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay p-4 sm:p-6" onClick={() => setShowTaskAssign(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">
+                Atribuir Tarefa para {selectedTaskMember.name}
+              </h3>
+              <button onClick={() => setShowTaskAssign(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            {tasks.filter(t => !t.employee_id || t.employee_id === selectedTaskMember.id).length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <span className="material-symbols-outlined text-4xl">assignment</span>
+                <p className="mt-2">Nenhuma tarefa disponível para atribuição.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {tasks.filter(t => !t.employee_id || t.employee_id === selectedTaskMember.id).map(task => (
+                  <div key={task.id} className={`flex items-center justify-between p-3 rounded-lg border ${task.employee_id === selectedTaskMember.id ? 'bg-purple-50 border-purple-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-800">{task.name}</p>
+                      <p className="text-xs text-gray-500">{task.status}</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (task.employee_id === selectedTaskMember.id) {
+                          await updateTask.mutateAsync({ id: task.id, employee_id: null });
+                        } else {
+                          await updateTask.mutateAsync({ id: task.id, employee_id: selectedTaskMember.id });
+                        }
+                        setShowTaskAssign(false);
+                      }}
+                      className={`text-xs font-medium px-3 py-1.5 rounded-lg transition ${task.employee_id === selectedTaskMember.id ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}
+                    >
+                      {task.employee_id === selectedTaskMember.id ? 'Remover' : 'Atribuir'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Time Off Form Modal */}
+      {showTimeOffForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay p-4 sm:p-6" onClick={() => setShowTimeOffForm(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800">Adicionar Período</h3>
+              <button onClick={() => setShowTimeOffForm(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              await addTimeOff.mutateAsync(timeOffFormData);
+              setShowTimeOffForm(false);
+              setTimeOffFormData({ employee_id: "", start_date: "", end_date: "", type: "Férias" });
+            }}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Funcionário</label>
+                  <select
+                    value={timeOffFormData.employee_id}
+                    onChange={(e) => setTimeOffFormData({ ...timeOffFormData, employee_id: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                    required
+                  >
+                    <option value="">Selecione...</option>
+                    {employees?.map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Data Início</label>
+                  <input
+                    type="date"
+                    value={timeOffFormData.start_date}
+                    onChange={(e) => setTimeOffFormData({ ...timeOffFormData, start_date: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Data Fim</label>
+                  <input
+                    type="date"
+                    value={timeOffFormData.end_date}
+                    onChange={(e) => setTimeOffFormData({ ...timeOffFormData, end_date: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tipo</label>
+                  <select
+                    value={timeOffFormData.type}
+                    onChange={(e) => setTimeOffFormData({ ...timeOffFormData, type: e.target.value })}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  >
+                    <option value="Férias">Férias</option>
+                    <option value="Folga">Folga</option>
+                    <option value="Licença">Licença</option>
+                  </select>
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition"
+              >
+                Salvar
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
@@ -711,6 +938,85 @@ export function Team() {
                   <p><span className="text-gray-500">Tarefas em andamento:</span> {selectedMember.tasks_in_progress || 0}</p>
                   <p><span className="text-gray-500">Eficiência:</span> {selectedMember.efficiency || "—"}%</p>
                 </div>
+
+                {/* Histórico de Avaliações */}
+                <div className="mt-3">
+                  <h5 className="text-sm font-semibold text-gray-600 mb-2">Histórico de Avaliações</h5>
+                  {reviews.length === 0 ? (
+                    <p className="text-xs text-gray-400">Nenhuma avaliação registrada.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {reviews.map((rev) => (
+                        <div key={rev.id} className="bg-white/10 rounded-lg p-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i} className={i < rev.rating ? "star-filled text-xs" : "star-empty text-xs"}>★</span>
+                            ))}
+                            <span className="text-gray-400 ml-1">{new Date(rev.date).toLocaleDateString("pt-BR")}</span>
+                          </div>
+                          {rev.comment && <p className="text-gray-400 mt-1">{rev.comment}</p>}
+                          {rev.reviewer?.name && <p className="text-gray-500 mt-0.5">por {rev.reviewer.name}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Adicionar Avaliação */}
+                {showReviewForm ? (
+                  <div className="mt-3 bg-white/10 rounded-lg p-3">
+                    <h5 className="text-sm font-semibold text-gray-600 mb-2">Nova Avaliação</h5>
+                    <div className="flex items-center gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setNewReviewRating(star)}
+                          className={`text-lg ${star <= newReviewRating ? "star-filled" : "star-empty"} hover:scale-110 transition`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={newReviewComment}
+                      onChange={(e) => setNewReviewComment(e.target.value)}
+                      placeholder="Comentário (opcional)"
+                      className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      rows={3}
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={async () => {
+                          await addReview.mutateAsync({
+                            employee_id: selectedMember.id,
+                            rating: newReviewRating,
+                            comment: newReviewComment,
+                          });
+                          setShowReviewForm(false);
+                          setNewReviewRating(5);
+                          setNewReviewComment("");
+                        }}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-lg font-medium transition"
+                      >
+                        Salvar
+                      </button>
+                      <button
+                        onClick={() => setShowReviewForm(false)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-xs hover:bg-gray-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowReviewForm(true)}
+                    className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-lg font-medium transition"
+                  >
+                    Adicionar Avaliação
+                  </button>
+                )}
               </div>
 
               <div>

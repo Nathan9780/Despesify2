@@ -35,6 +35,9 @@ export function Investors() {
   const [showAddBalance, setShowAddBalance] = useState(false);
   const [balanceAmount, setBalanceAmount] = useState("");
 
+  const [showRoiModal, setShowRoiModal] = useState(false);
+  const [roiInvestor, setRoiInvestor] = useState(null);
+
   // Sistema de convites
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showInvitationsPanel, setShowInvitationsPanel] = useState(false);
@@ -536,7 +539,10 @@ export function Investors() {
                       <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1 rounded-lg text-xs font-medium">
                         💬 Conversar
                       </button>
-                      <button className="flex-1 border border-gray-300 rounded-lg py-1 text-xs hover:bg-gray-50">
+                      <button
+                        onClick={() => { setRoiInvestor(inv); setShowRoiModal(true); }}
+                        className="flex-1 border border-gray-300 rounded-lg py-1 text-xs hover:bg-gray-50"
+                      >
                         📊 Histórico
                       </button>
                     </div>
@@ -818,6 +824,77 @@ export function Investors() {
           ))}
         </div>
       </div>
+
+      {/* Modal ROI Histórico */}
+      {showRoiModal && roiInvestor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowRoiModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">📊 ROI - {roiInvestor.name}</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Relatório de Retorno sobre Investimento</p>
+              </div>
+              <button onClick={() => setShowRoiModal(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            {(() => {
+              const invested = roiInvestor.invested || 0;
+              const estimatedReturn = roiInvestor.estimatedReturn || invested * 1.25;
+              const currentValue = roiInvestor.currentValue || estimatedReturn;
+              const roiPercent = invested > 0 ? ((currentValue - invested) / invested) * 100 : 0;
+              const investmentDate = roiInvestor.investmentDate || roiInvestor.created_at || new Date().toISOString();
+              const months = ["Mês 1","Mês 2","Mês 3","Mês 4","Mês 5","Mês 6"];
+              const growthData = months.map((m, i) => ({
+                month: m,
+                value: Math.round(invested + (currentValue - invested) * ((i + 1) / months.length)),
+              }));
+              const maxVal = Math.max(...growthData.map(d => d.value), invested);
+              return (
+                <>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gray-50 rounded-xl p-3 text-center">
+                      <p className="text-xs text-gray-500">Investido</p>
+                      <p className="text-lg font-bold text-blue-600">R$ {invested.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3 text-center">
+                      <p className="text-xs text-gray-500">Valor Atual</p>
+                      <p className="text-lg font-bold text-green-600">R$ {currentValue.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3 text-center">
+                      <p className="text-xs text-gray-500">ROI</p>
+                      <p className={`text-lg font-bold ${roiPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {roiPercent >= 0 ? '+' : ''}{roiPercent.toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3 text-center">
+                      <p className="text-xs text-gray-500">Data do Investimento</p>
+                      <p className="text-lg font-bold text-gray-700">{new Date(investmentDate).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Evolução do Investimento</p>
+                    <div className="flex items-end gap-2 h-32">
+                      {growthData.map(d => {
+                        const height = maxVal > 0 ? (d.value / maxVal) * 100 : 0;
+                        return (
+                          <div key={d.month} className="flex flex-col items-center flex-1">
+                            <div className="w-full flex justify-center">
+                              <div className="chart-bar w-6 bg-gradient-to-t from-green-400 to-blue-500 rounded-t" style={{ height: `${height}%`, minHeight: '4px' }} />
+                            </div>
+                            <span className="text-[9px] text-gray-500 mt-1">{d.month}</span>
+                            <span className="text-[7px] text-gray-400">R${(d.value / 1000).toFixed(0)}k</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Modal Adicionar Saldo */}
       {showAddBalance && (

@@ -101,8 +101,7 @@ export function Topbar() {
 
   const userInitial = userName.charAt(0).toUpperCase();
 
-  const { notifications, clearAll, markAsRead } = useNotifications();
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const { notifications, unreadCount, clearAll, markAsRead } = useNotifications();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16 px-6 bg-white/70 dark:bg-[#0F1829]/95 backdrop-blur-md border-b border-white/30 dark:border-[#1A2438] flex items-center justify-between shadow-sm select-none transition-colors duration-300">

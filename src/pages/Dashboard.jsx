@@ -384,6 +384,33 @@ export function Dashboard() {
               )}
             </div>
           </div>
+
+          <div className="bg-white rounded-xl p-5 shadow">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-blue-600">monitor_heart</span>
+              Saúde dos Projetos
+            </h3>
+            <div className="space-y-3">
+              {dashboardData?.projects?.list?.slice(0, 5).map(p => {
+                const pct = p.budget > 0 ? (p.spent / p.budget) * 100 : 0;
+                const health = pct <= 50 ? '🟢' : pct <= 80 ? '🟡' : '🔴';
+                const label = pct <= 50 ? 'Saudável' : pct <= 80 ? 'Atenção' : 'Crítico';
+                const color = pct <= 50 ? 'text-green-600' : pct <= 80 ? 'text-yellow-600' : 'text-red-600';
+                return (
+                  <div key={p.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                    <span className="text-lg">{health}</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-800">{p.name}</p>
+                      <p className={`text-xs font-medium ${color}`}>{label} - {pct.toFixed(0)}% do orçamento gasto</p>
+                    </div>
+                    <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${pct <= 50 ? 'bg-green-500' : pct <= 80 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{width: `${Math.min(pct, 100)}%`}} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 

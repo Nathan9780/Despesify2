@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useMaterials } from "../hooks/useMaterials";
+import { useStockMovements } from "../hooks/useStockMovements";
 import { useGooglePlaces } from "../hooks/useGooglePlaces";
 import { useTheme } from "../contexts/ThemeContext";
 import { GoogleMap, Marker } from "@react-google-maps/api";
+import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 
 export function Materials() {
@@ -27,6 +29,7 @@ export function Materials() {
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [showHistoryFor, setShowHistoryFor] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -591,6 +594,13 @@ export function Materials() {
                       Detalhes
                     </button>
                     <button
+                      onClick={() => setShowHistoryFor(material.id)}
+                      className="px-2 py-1.5 border border-purple-300 dark:border-purple-700 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 text-xs text-purple-600 dark:text-purple-400"
+                      title="Histórico de movimentações"
+                    >
+                      📋
+                    </button>
+                    <button
                       onClick={() => handleOpenModal(material)}
                       className="px-2 py-1.5 border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-surface)]/50 text-xs text-[var(--color-text)]"
                     >
@@ -970,6 +980,11 @@ export function Materials() {
         </div>
       )}
 
+      {/* Modal de Histórico de Movimentações */}
+      {showHistoryFor && (
+        <StockMovementModal materialId={showHistoryFor} onClose={() => setShowHistoryFor(null)} />
+      )}
+
       {/* Modal de Detalhes */}
       {showDetails && selectedMaterial && (
         <div
@@ -1066,6 +1081,16 @@ export function Materials() {
                 </div>
               )}
 
+              <div className="flex items-center gap-4">
+                <div className="bg-white p-2 rounded-lg">
+                  <QRCodeSVG value={`${window.location.origin}/materials/${selectedMaterial.id}`} size={80} />
+                </div>
+                <div className="text-xs text-[var(--color-text-secondary)]">
+                  <p className="font-medium text-[var(--color-text)]">QR Code do Material</p>
+                  <p>Escaneie para acessar os detalhes</p>
+                </div>
+              </div>
+
               {selectedMaterial.project_impact > 0 && (
                 <div className="bg-[var(--color-surface)]/50 rounded-lg p-3">
                   <p className="text-sm text-[var(--color-text-secondary)]">
@@ -1096,6 +1121,15 @@ export function Materials() {
                   className="flex-1 btn-primary text-white py-2 rounded-lg font-medium transition"
                 >
                   Editar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDetails(false);
+                    setShowHistoryFor(selectedMaterial.id);
+                  }}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-medium transition"
+                >
+                  Histórico
                 </button>
                 <button
                   onClick={() => {
@@ -1132,6 +1166,100 @@ export function Materials() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function StockMovementModal({ materialId, onClose }) {
+  const { movements, isLoading } = useStockMovements(materialId);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center modal-overlay"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[var(--color-surface)] rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold text-[var(--color-text)]">
+            Histórico de Movimentações
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        ) : movements.length === 0 ? (
+          <div className="text-center py-12">
+            <span className="material-symbols-outlined text-5xl text-[var(--color-text-secondary)]/40">
+              history
+            </span>
+            <p className="mt-3 text-[var(--color-text-secondary)]">
+              Nenhuma movimentação registrada para este material.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[var(--color-border)] text-[var(--color-text-secondary)] text-xs uppercase">
+                  <th className="pb-3 pr-4 font-medium">Data/Hora</th>
+                  <th className="pb-3 pr-4 font-medium">Tipo</th>
+                  <th className="pb-3 pr-4 font-medium">Quantidade</th>
+                  <th className="pb-3 pr-4 font-medium">Usuário</th>
+                  <th className="pb-3 font-medium">Observações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]/50">
+                {movements.map((mov) => (
+                  <tr key={mov.id} className="hover:bg-[var(--color-surface)]/50">
+                    <td className="py-3 pr-4 text-[var(--color-text)] whitespace-nowrap">
+                      {new Date(mov.created_at).toLocaleString("pt-BR")}
+                    </td>
+                    <td className="py-3 pr-4">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          mov.type === "in"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        }`}
+                      >
+                        {mov.type === "in" ? "Entrada" : "Saída"}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <span
+                        className={`font-medium ${
+                          mov.type === "in"
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {mov.type === "in" ? "+" : "-"}{mov.quantity_change}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 text-[var(--color-text)]">
+                      {mov.profiles?.name || "—"}
+                    </td>
+                    <td className="py-3 text-[var(--color-text-secondary)] max-w-[200px] truncate">
+                      {mov.notes || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useTasks } from "../hooks/useTasks";
 import { useEmployees } from "../hooks/useEmployees";
+import { useSubtasks } from "../hooks/useSubtasks";
+import { useTimeEntries } from "../hooks/useTimeEntries";
 import toast from "react-hot-toast";
 
 const columns = [
@@ -16,13 +18,87 @@ const priorities = [
   { id: "high", label: "Alta", color: "text-red-600 bg-red-100" },
 ];
 
+const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const monthNames = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
+function SubtasksList({ taskId }) {
+  const { subtasks, isLoading, createSubtask, toggleSubtask, deleteSubtask } = useSubtasks(taskId);
+  const [newSub, setNewSub] = useState("");
+
+  const handleAdd = () => {
+    if (!newSub.trim()) return;
+    createSubtask.mutate({ task_id: taskId, description: newSub.trim() });
+    setNewSub("");
+  };
+
+  return (
+    <div className="space-y-2">
+      {subtasks.map(st => (
+        <div key={st.id} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <input type="checkbox" checked={st.completed} onChange={() => toggleSubtask.mutate({ id: st.id, completed: !st.completed })} className="w-4 h-4 text-[#2980B9] rounded" />
+          <span className={`flex-1 text-sm ${st.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}>{st.description}</span>
+          <button onClick={() => deleteSubtask.mutate(st.id)} className="text-gray-400 hover:text-red-500"><span className="material-symbols-outlined text-sm">close</span></button>
+        </div>
+      ))}
+      <div className="flex gap-2">
+        <input type="text" value={newSub} onChange={e => setNewSub(e.target.value)} placeholder="Nova subtarefa..." className="flex-1 p-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg outline-none focus:ring-1 focus:ring-[#2980B9]" onKeyDown={e => e.key === 'Enter' && handleAdd()} />
+        <button onClick={handleAdd} className="px-3 py-2 bg-[#2980B9] text-white rounded-lg text-sm font-medium hover:bg-[#2980B9]/90">Adicionar</button>
+      </div>
+    </div>
+  );
+}
+
+function TimerBadge({ taskId }) {
+  const { entries, startTimer, stopTimer, totalDuration } = useTimeEntries(taskId);
+  const [runningId, setRunningId] = useState(null);
+
+  const activeEntry = entries.find(e => !e.end_time);
+
+  useEffect(() => {
+    if (activeEntry) setRunningId(activeEntry.id);
+    else setRunningId(null);
+  }, [activeEntry]);
+
+  const formatDuration = (secs) => {
+    if (!secs) return "00:00";
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center gap-1 text-[10px] text-gray-500">
+      <span className="material-symbols-outlined text-[12px]">schedule</span>
+      <span className="font-mono">{formatDuration(totalDuration)}</span>
+      {runningId ? (
+        <button onClick={() => { stopTimer.mutate(runningId); setRunningId(null); }} className="text-red-500 hover:text-red-700">
+          <span className="material-symbols-outlined text-[14px]">stop_circle</span>
+        </button>
+      ) : (
+        <button onClick={() => startTimer.mutate({ task_id: taskId })} className="text-green-500 hover:text-green-700">
+          <span className="material-symbols-outlined text-[14px]">play_circle</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function Tasks() {
   const { tasks, isLoading, createTask, updateTask, deleteTask } = useTasks();
   const { employees } = useEmployees();
-  
+
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  
+  const [viewMode, setViewMode] = useState("kanban");
+
+  // Calendar nav state
+  const today = new Date();
+  const [calendarYear, setCalendarYear] = useState(today.getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState(today.getMonth());
+
   // Drag and drop state
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
@@ -98,10 +174,10 @@ export function Tasks() {
     setDragOverCol(null);
     const taskId = e.dataTransfer.getData("taskId");
     if (!taskId) return;
-    
+
     setDraggedTaskId(null);
     const task = tasks.find(t => t.id === taskId);
-    
+
     if (task && task.status !== targetStatus) {
       const updates = { id: taskId, status: targetStatus };
       if (targetStatus === 'completed') {
@@ -109,7 +185,7 @@ export function Tasks() {
       } else {
         updates.completed_at = null;
       }
-      
+
       try {
         await updateTask.mutateAsync(updates);
         toast.success("Tarefa movida!");
@@ -125,7 +201,7 @@ export function Tasks() {
       const payload = { ...formData };
       if (!payload.employee_id) payload.employee_id = null;
       if (!payload.due_date) payload.due_date = null;
-      
+
       // Parse tags
       if (payload.tags && typeof payload.tags === 'string') {
         payload.tags = payload.tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
@@ -168,8 +244,8 @@ export function Tasks() {
   const handleQuickComplete = async (task, e) => {
     e.stopPropagation();
     try {
-      await updateTask.mutateAsync({ 
-        id: task.id, 
+      await updateTask.mutateAsync({
+        id: task.id,
         status: "completed",
         completed_at: new Date().toISOString()
       });
@@ -181,12 +257,12 @@ export function Tasks() {
 
   const filteredTasks = useMemo(() => {
     let result = tasks || [];
-    
+
     // Filtros
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
-      result = result.filter(t => 
-        t.name?.toLowerCase().includes(lower) || 
+      result = result.filter(t =>
+        t.name?.toLowerCase().includes(lower) ||
         t.description?.toLowerCase().includes(lower) ||
         t.tags?.some(tag => tag.toLowerCase().includes(lower))
       );
@@ -219,9 +295,50 @@ export function Tasks() {
       // Manual sort (fallback to position if implemented, or created_at)
       result = [...result].sort((a, b) => (a.position || 0) - (b.position || 0) || new Date(b.created_at) - new Date(a.created_at));
     }
-    
+
     return result;
   }, [tasks, searchTerm, filterEmployee, filterPriority, sortOption]);
+
+  // Calendar helpers
+  const goPrevMonth = () => {
+    if (calendarMonth === 0) {
+      setCalendarMonth(11);
+      setCalendarYear(calendarYear - 1);
+    } else {
+      setCalendarMonth(calendarMonth - 1);
+    }
+  };
+
+  const goNextMonth = () => {
+    if (calendarMonth === 11) {
+      setCalendarMonth(0);
+      setCalendarYear(calendarYear + 1);
+    } else {
+      setCalendarMonth(calendarMonth + 1);
+    }
+  };
+
+  const getCalendarDays = () => {
+    const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+    const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+    const days = [];
+    for (let i = 0; i < firstDay; i++) days.push(null);
+    for (let d = 1; d <= daysInMonth; d++) days.push(d);
+    return days;
+  };
+
+  const tasksByDate = useMemo(() => {
+    const map = {};
+    filteredTasks.forEach(task => {
+      if (task.due_date) {
+        const d = new Date(task.due_date);
+        const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (!map[key]) map[key] = [];
+        map[key].push(task);
+      }
+    });
+    return map;
+  }, [filteredTasks]);
 
   if (isLoading) {
     return (
@@ -249,13 +366,23 @@ export function Tasks() {
                 Gerencie as atividades, mova os cartões e acompanhe o progresso.
               </p>
             </div>
-            <button
-              onClick={() => openModal()}
-              className="flex items-center gap-2 bg-[#2980B9] hover:bg-[#2980B9]/90 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-md shadow-[#2980B9]/20 active:scale-95 whitespace-nowrap"
-            >
-              <span className="material-symbols-outlined">add</span>
-              Nova Tarefa
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                <button onClick={() => setViewMode("kanban")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === "kanban" ? "bg-white dark:bg-gray-700 shadow-sm text-[#2980B9]" : "text-gray-500"}`}>
+                  <span className="material-symbols-outlined text-sm align-middle">view_kanban</span> Kanban
+                </button>
+                <button onClick={() => setViewMode("calendar")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === "calendar" ? "bg-white dark:bg-gray-700 shadow-sm text-[#2980B9]" : "text-gray-500"}`}>
+                  <span className="material-symbols-outlined text-sm align-middle">calendar_month</span> Calendário
+                </button>
+              </div>
+              <button
+                onClick={() => openModal()}
+                className="flex items-center gap-2 bg-[#2980B9] hover:bg-[#2980B9]/90 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-md shadow-[#2980B9]/20 active:scale-95 whitespace-nowrap"
+              >
+                <span className="material-symbols-outlined">add</span>
+                Nova Tarefa
+              </button>
+            </div>
           </div>
 
           {/* Barra de Filtros */}
@@ -282,7 +409,7 @@ export function Tasks() {
                   <option key={emp.id} value={emp.id}>{emp.name}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filterPriority}
                 onChange={e => setFilterPriority(e.target.value)}
@@ -306,136 +433,209 @@ export function Tasks() {
         </div>
 
         {/* Quadro Kanban */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex gap-6 h-full overflow-x-auto pb-4 custom-scrollbar snap-x">
-            {columns.map(col => {
-              const colTasks = filteredTasks.filter(t => t.status === col.id);
-              const isDragOver = dragOverCol === col.id;
-              
-              return (
-                <div 
-                  key={col.id} 
-                  className={`flex-1 min-w-[320px] max-w-[400px] bg-gray-200/40 dark:bg-gray-800/20 rounded-2xl p-4 flex flex-col border-2 transition-colors snap-center h-full
-                    ${isDragOver ? 'border-[#2980B9] bg-[#2980B9]/5 dark:bg-[#2980B9]/10' : 'border-transparent dark:border-gray-700/30'}
-                  `}
-                  onDragOver={(e) => handleDragOver(e, col.id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, col.id)}
-                >
-                  <div className="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center justify-between sticky top-0 bg-transparent z-10 pb-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-3.5 h-3.5 rounded-full ${col.color} shadow-sm`}></div>
-                      <span className="tracking-wide uppercase text-sm">{col.title}</span>
+        {viewMode === "kanban" && (
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex gap-6 h-full overflow-x-auto pb-4 custom-scrollbar snap-x">
+              {columns.map(col => {
+                const colTasks = filteredTasks.filter(t => t.status === col.id);
+                const isDragOver = dragOverCol === col.id;
+
+                return (
+                  <div
+                    key={col.id}
+                    className={`flex-1 min-w-[320px] max-w-[400px] bg-gray-200/40 dark:bg-gray-800/20 rounded-2xl p-4 flex flex-col border-2 transition-colors snap-center h-full
+                      ${isDragOver ? 'border-[#2980B9] bg-[#2980B9]/5 dark:bg-[#2980B9]/10' : 'border-transparent dark:border-gray-700/30'}
+                    `}
+                    onDragOver={(e) => handleDragOver(e, col.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, col.id)}
+                  >
+                    <div className="font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center justify-between sticky top-0 bg-transparent z-10 pb-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-3.5 h-3.5 rounded-full ${col.color} shadow-sm`}></div>
+                        <span className="tracking-wide uppercase text-sm">{col.title}</span>
+                      </div>
+                      <span className="bg-gray-300/80 dark:bg-gray-700/80 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-sm">
+                        {colTasks.length}
+                      </span>
                     </div>
-                    <span className="bg-gray-300/80 dark:bg-gray-700/80 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-sm">
-                      {colTasks.length}
-                    </span>
-                  </div>
-                  
-                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-10 custom-scrollbar relative min-h-[200px]">
-                    {colTasks.map(task => {
-                      const prio = priorities.find(p => p.id === task.priority) || priorities[1];
-                      const isLate = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
-                      
-                      return (
-                        <div
-                          key={task.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, task.id)}
-                          onClick={() => openModal(task)}
-                          className={`group bg-white dark:bg-[#1A2438] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 cursor-pointer transition-all duration-300 relative overflow-hidden
-                            ${draggedTaskId === task.id ? 'opacity-40 scale-[0.98]' : 'hover:-translate-y-1 hover:shadow-lg hover:border-[#2980B9]/40'}
-                            ${isLate ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-transparent'}
-                          `}
-                        >
-                          <div className="flex justify-between items-start mb-3 gap-2">
-                            <div className="flex flex-wrap gap-1.5">
-                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest ${prio.color}`}>
-                                {prio.label}
-                              </span>
-                              {task.tags?.map((tag, idx) => (
-                                <span key={idx} className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 truncate max-w-[80px]">
-                                  {tag}
+
+                    <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-10 custom-scrollbar relative min-h-[200px]">
+                      {colTasks.map(task => {
+                        const prio = priorities.find(p => p.id === task.priority) || priorities[1];
+                        const isLate = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
+
+                        return (
+                          <div
+                            key={task.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, task.id)}
+                            onClick={() => openModal(task)}
+                            className={`group bg-white dark:bg-[#1A2438] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 cursor-pointer transition-all duration-300 relative overflow-hidden
+                              ${draggedTaskId === task.id ? 'opacity-40 scale-[0.98]' : 'hover:-translate-y-1 hover:shadow-lg hover:border-[#2980B9]/40'}
+                              ${isLate ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-transparent'}
+                            `}
+                          >
+                            <div className="flex justify-between items-start mb-3 gap-2">
+                              <div className="flex flex-wrap gap-1.5">
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest ${prio.color}`}>
+                                  {prio.label}
                                 </span>
-                              ))}
-                            </div>
-                            
-                            <div className="flex gap-1">
-                              {task.status !== 'completed' && (
-                                <button 
-                                  onClick={(e) => handleQuickComplete(task, e)}
-                                  title="Marcar como concluído"
-                                  className="text-gray-300 hover:text-green-500 transition-colors p-1 rounded-md hover:bg-green-50 dark:hover:bg-green-900/20"
-                                >
-                                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                                </button>
-                              )}
-                              <button 
-                                onClick={(e) => handleDelete(task.id, e)}
-                                title="Excluir"
-                                className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100"
-                              >
-                                <span className="material-symbols-outlined text-[18px]">delete</span>
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-2 leading-snug">{task.name}</h3>
-                          
-                          {task.description && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 line-clamp-2 leading-relaxed">{task.description}</p>
-                          )}
-                          
-                          <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50 dark:border-gray-700/30">
-                            {task.employee_id ? (
-                              <div className="flex items-center gap-2 group/emp" title={task.employees?.name}>
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2980B9] to-[#1A5276] text-white flex items-center justify-center text-xs font-bold shadow-md shadow-[#2980B9]/20">
-                                  {task.employees?.name?.charAt(0) || "?"}
-                                </div>
-                                <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 truncate max-w-[80px] group-hover/emp:text-[#2980B9] transition-colors">
-                                  {task.employees?.name?.split(' ')[0]}
-                                </span>
+                                {task.tags?.map((tag, idx) => (
+                                  <span key={idx} className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 truncate max-w-[80px]">
+                                    {tag}
+                                  </span>
+                                ))}
                               </div>
-                            ) : (
-                              <span className="text-[11px] text-gray-400 italic bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">Sem atribuição</span>
+
+                              <div className="flex gap-1">
+                                {task.status !== 'completed' && (
+                                  <button
+                                    onClick={(e) => handleQuickComplete(task, e)}
+                                    title="Marcar como concluído"
+                                    className="text-gray-300 hover:text-green-500 transition-colors p-1 rounded-md hover:bg-green-50 dark:hover:bg-green-900/20"
+                                  >
+                                    <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => handleDelete(task.id, e)}
+                                  title="Excluir"
+                                  className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100"
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-2 leading-snug">{task.name}</h3>
+
+                            {task.description && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 line-clamp-2 leading-relaxed">{task.description}</p>
                             )}
-                            
-                            <div className="flex flex-col items-end gap-1">
-                              {task.due_date && (
-                                <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                                  isLate 
-                                    ? 'text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900' 
-                                    : 'text-gray-500 bg-gray-100 dark:bg-gray-800'
-                                }`}>
-                                  <span className="material-symbols-outlined text-[12px]">{isLate ? 'warning' : 'event'}</span>
-                                  {new Date(task.due_date).toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})}
+
+                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50 dark:border-gray-700/30">
+                              {task.employee_id ? (
+                                <div className="flex items-center gap-2 group/emp" title={task.employees?.name}>
+                                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#2980B9] to-[#1A5276] text-white flex items-center justify-center text-xs font-bold shadow-md shadow-[#2980B9]/20">
+                                    {task.employees?.name?.charAt(0) || "?"}
+                                  </div>
+                                  <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 truncate max-w-[80px] group-hover/emp:text-[#2980B9] transition-colors">
+                                    {task.employees?.name?.split(' ')[0]}
+                                  </span>
                                 </div>
+                              ) : (
+                                <span className="text-[11px] text-gray-400 italic bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">Sem atribuição</span>
                               )}
-                              {task.status === 'completed' && task.completed_at && (
-                                <div className="text-[9px] text-green-600 font-medium">
-                                  Feito em {new Date(task.completed_at).toLocaleDateString('pt-BR')}
-                                </div>
-                              )}
+
+                              <div className="flex flex-col items-end gap-1">
+                                {task.due_date && (
+                                  <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                    isLate
+                                      ? 'text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900'
+                                      : 'text-gray-500 bg-gray-100 dark:bg-gray-800'
+                                  }`}>
+                                    <span className="material-symbols-outlined text-[12px]">{isLate ? 'warning' : 'event'}</span>
+                                    {new Date(task.due_date).toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})}
+                                  </div>
+                                )}
+                                {task.status === 'completed' && task.completed_at && (
+                                  <div className="text-[9px] text-green-600 font-medium">
+                                    Feito em {new Date(task.completed_at).toLocaleDateString('pt-BR')}
+                                  </div>
+                                )}
+                                <TimerBadge taskId={task.id} />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                    
-                    {/* Botão de Nova Tarefa na Coluna */}
-                    <button
-                      onClick={() => openModal(null, col.id)}
-                      className="w-full flex items-center justify-center gap-2 py-3 mt-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-300/50 dark:hover:bg-gray-700/50 hover:text-gray-700 dark:hover:text-gray-200 transition-colors border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm font-medium"
-                    >
-                      <span className="material-symbols-outlined text-lg">add</span>
-                      Adicionar Cartão
-                    </button>
+                        );
+                      })}
+
+                      {/* Botão de Nova Tarefa na Coluna */}
+                      <button
+                        onClick={() => openModal(null, col.id)}
+                        className="w-full flex items-center justify-center gap-2 py-3 mt-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-300/50 dark:hover:bg-gray-700/50 hover:text-gray-700 dark:hover:text-gray-200 transition-colors border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm font-medium"
+                      >
+                        <span className="material-symbols-outlined text-lg">add</span>
+                        Adicionar Cartão
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Calendar View */}
+        {viewMode === "calendar" && (
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-[#1A2438] rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700/50 p-6 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <button onClick={goPrevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-300">
+                  <span className="material-symbols-outlined">chevron_left</span>
+                </button>
+                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+                  {monthNames[calendarMonth]} {calendarYear}
+                </h2>
+                <button onClick={goNextMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-300">
+                  <span className="material-symbols-outlined">chevron_right</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700 rounded-xl overflow-hidden flex-1">
+                {weekdays.map(d => (
+                  <div key={d} className="bg-gray-50 dark:bg-gray-800 text-center text-xs font-bold text-gray-500 dark:text-gray-400 py-2 uppercase tracking-wider">
+                    {d}
+                  </div>
+                ))}
+                {getCalendarDays().map((day, idx) => {
+                  if (day === null) {
+                    return <div key={`empty-${idx}`} className="bg-white dark:bg-[#1A2438] min-h-[100px]" />;
+                  }
+                  const dateKey = `${calendarYear}-${String(calendarMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                  const dayTasks = tasksByDate[dateKey] || [];
+                  const isToday = calendarYear === today.getFullYear() && calendarMonth === today.getMonth() && day === today.getDate();
+                  const isPast = new Date(calendarYear, calendarMonth, day + 1) < new Date();
+
+                  return (
+                    <div
+                      key={`day-${day}`}
+                      className={`bg-white dark:bg-[#1A2438] p-1 min-h-[100px] flex flex-col gap-0.5 transition-colors
+                        ${isToday ? 'ring-2 ring-[#2980B9] ring-inset' : ''}
+                      `}
+                    >
+                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full w-fit mb-1 ${
+                        isPast ? 'text-gray-400' : 'text-gray-700 dark:text-gray-200'
+                      } ${isToday ? 'bg-[#2980B9] text-white' : ''}`}>
+                        {day}
+                      </span>
+                      <div className="flex-1 overflow-y-auto space-y-0.5">
+                        {dayTasks.slice(0, 4).map(t => {
+                          const prio = priorities.find(p => p.id === t.priority) || priorities[1];
+                          return (
+                            <div
+                              key={t.id}
+                              onClick={() => openModal(t)}
+                              className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer truncate font-medium text-white
+                                ${t.status === 'completed' ? 'bg-green-500' : t.status === 'in_progress' ? 'bg-blue-500' : t.status === 'in_review' ? 'bg-yellow-500' : 'bg-gray-400'}
+                              `}
+                              title={t.name}
+                            >
+                              {t.name}
+                            </div>
+                          );
+                        })}
+                        {dayTasks.length > 4 && (
+                          <span className="text-[9px] text-gray-400 px-1">+{dayTasks.length - 4} mais</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal Nova/Editar Tarefa */}
@@ -452,7 +652,7 @@ export function Tasks() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            
+
             <form onSubmit={handleSaveTask} className="space-y-5">
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">Título da Tarefa</label>
@@ -539,6 +739,17 @@ export function Tasks() {
                   />
                 </div>
               </div>
+
+              {/* Subtarefas Section */}
+              {editingTask && (
+                <div className="border-t border-gray-100 dark:border-gray-700/50 pt-4 mt-4">
+                  <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base">checklist</span>
+                    Subtarefas
+                  </h4>
+                  <SubtasksList taskId={editingTask.id} />
+                </div>
+              )}
 
               <div className="pt-6 flex gap-4 border-t border-gray-100 dark:border-gray-700/50 mt-4">
                 <button

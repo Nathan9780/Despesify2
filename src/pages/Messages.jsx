@@ -4,6 +4,7 @@ import { useConversations } from "../hooks/useConversations";
 import { useMessages } from "../hooks/useMessages";
 import toast from "react-hot-toast";
 import { supabase } from "../lib/supabase";
+import { useGroupConversations } from "../hooks/useGroupConversations";
 
 export function Messages() {
   const {
@@ -27,6 +28,14 @@ export function Messages() {
   const [profilesList, setProfilesList] = useState([]);
   const [selectedProfileId, setSelectedProfileId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
+  const [typingUsers, setTypingUsers] = useState({});
+  const [messageSearch, setMessageSearch] = useState("");
+  const typingTimeoutRef = useRef(null);
+  const [groupName, setGroupName] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [availableProfiles, setAvailableProfiles] = useState([]);
 
   const messagesEndRef = useRef(null);
 
@@ -48,6 +57,22 @@ export function Messages() {
       fetchInitial();
     }
   }, [showNewConversation, newConvName]);
+
+  useEffect(() => {
+    if (showGroupModal) {
+      const fetchProfiles = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, name, email, plan')
+          .limit(20);
+        if (data) {
+          const filtered = data.filter(p => p.id !== currentUserId);
+          setAvailableProfiles(filtered);
+        }
+      };
+      fetchProfiles();
+    }
+  }, [showGroupModal, currentUserId]);
 
   // Buscar usuários para o modal de Nova Conversa
   const handleSearchProfiles = async (query) => {
@@ -122,6 +147,8 @@ export function Messages() {
     error: messagesError,
     sendMessage,
   } = useMessages(selectedConversation?.id);
+
+  const { groups, isLoading: groupsLoading, createGroup, sendGroupMessage } = useGroupConversations();
 
   // Scroll para o final ao carregar mensagens
   useEffect(() => {
@@ -349,13 +376,68 @@ export function Messages() {
     default: "Contato",
   };
 
+  // Typing indicator
+  const getCurrentUserName = () => {
+    try {
+      const userStr = localStorage.getItem("currentUser");
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        return u.name || u.email || "Usuário";
+      }
+    } catch (e) {}
+    return "Usuário";
+  };
+
+  const handleTyping = () => {
+    if (!selectedConversation) return;
+    const channel = supabase.channel(`typing_${selectedConversation.id}`);
+    const userName = getCurrentUserName();
+    channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { userId: currentUserId, userName }
+    });
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      channel.send({
+        type: 'broadcast',
+        event: 'stop_typing',
+        payload: { userId: currentUserId }
+      });
+    }, 2000);
+  };
+
+  useEffect(() => {
+    if (!selectedConversation) return;
+    const channel = supabase.channel(`typing_${selectedConversation.id}`);
+    channel.on('broadcast', { event: 'typing' }, (payload) => {
+      if (payload.payload.userId !== currentUserId) {
+        setTypingUsers(prev => ({ ...prev, [payload.payload.userId]: payload.payload.userName }));
+      }
+    }).on('broadcast', { event: 'stop_typing' }, (payload) => {
+      setTypingUsers(prev => {
+        const next = { ...prev };
+        delete next[payload.payload.userId];
+        return next;
+      });
+    }).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedConversation, currentUserId]);
+
   // Enviar mensagem
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
-    sendMessage.mutate({
-      conversationId: selectedConversation.id,
-      content: newMessage,
-    });
+    if (showGroups) {
+      sendGroupMessage.mutate({
+        group_id: selectedConversation.id,
+        content: newMessage,
+      });
+    } else {
+      sendMessage.mutate({
+        conversationId: selectedConversation.id,
+        content: newMessage,
+      });
+    }
     setNewMessage("");
   };
 
@@ -514,10 +596,16 @@ export function Messages() {
             Comunique-se com investidores, fornecedores e equipe.
           </p>
         </div>
-        <button onClick={() => setShowNewConversation(true)} className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 mt-3 sm:mt-0">
-          <span className="material-symbols-outlined text-lg">edit</span>
-          Nova Conversa
-        </button>
+        <div className="flex gap-2 mt-3 sm:mt-0">
+          <button onClick={() => setShowGroupModal(true)} className="btn-primary-glow bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">group_add</span>
+            Criar Grupo
+          </button>
+          <button onClick={() => setShowNewConversation(true)} className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">edit</span>
+            Nova Conversa
+          </button>
+        </div>
       </div>
 
       {/* Cards de Resumo */}
@@ -632,101 +720,142 @@ export function Messages() {
               </div>
               <div className="flex gap-1 mt-2 overflow-x-auto pb-1 scrollbar-hide">
                 <button
-                  onClick={() => setFilterType("all")}
+                  onClick={() => { setFilterType("all"); setShowGroups(false); }}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition ${filterType === "all" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
                 >
                   Todas
                 </button>
                 <button
-                  onClick={() => setFilterType("investor")}
+                  onClick={() => { setFilterType("investor"); setShowGroups(false); }}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition ${filterType === "investor" ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}
                 >
                   💰 Investidores
                 </button>
                 <button
-                  onClick={() => setFilterType("supplier")}
+                  onClick={() => { setFilterType("supplier"); setShowGroups(false); }}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition ${filterType === "supplier" ? "bg-blue-600 text-white" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
                 >
                   🏪 Fornecedores
                 </button>
                 <button
-                  onClick={() => setFilterType("worker")}
+                  onClick={() => { setFilterType("worker"); setShowGroups(false); }}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition ${filterType === "worker" ? "bg-blue-600 text-white" : "bg-orange-50 text-orange-600 hover:bg-orange-100"}`}
                 >
                   👷 Funcionários
+                </button>
+                <button
+                  onClick={() => { setShowGroups(!showGroups); setFilterType("all"); }}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition ${showGroups ? "bg-purple-600 text-white" : "bg-purple-50 text-purple-600 hover:bg-purple-100"}`}
+                >
+                  👥 Grupos
                 </button>
               </div>
             </div>
 
             {/* Lista */}
             <div className="flex-1 overflow-y-auto scrollbar-hide">
-              {filteredConversations.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                  <span className="material-symbols-outlined text-4xl text-gray-300">
-                    chat_bubble_outline
-                  </span>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Nenhuma conversa encontrada
-                  </p>
-                  <button className="mt-4 text-blue-600 hover:underline text-sm">
-                    Iniciar nova conversa
-                  </button>
-                </div>
-              ) : (
-                filteredConversations.map((chat) => {
-                  const lastMessage = chat.messages?.[chat.messages.length - 1];
-                  const unreadCount =
-                    chat.messages?.filter(
-                      (m) => !m.is_read && m.user_id !== currentUserId,
-                    ).length || 0;
-
-                  return (
-                    <div
-                      key={chat.id}
-                      onClick={() => {
-                        setSelectedConversation(chat);
-                        // Marcar como lida (seria feito via mutation)
-                      }}
-                      className={`flex items-center gap-3 p-3 cursor-pointer transition hover:bg-white/50 border-b border-gray-100/50 ${selectedConversation?.id === chat.id ? "bg-white/60" : ""}`}
-                    >
-                      <div className="relative flex-shrink-0">
-                        <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[chat.type] || typeColors.default}`}
-                        >
-                          {chat.avatar || chat.name?.charAt(0) || "?"}
+              {showGroups ? (
+                groupsLoading ? (
+                  <div className="flex justify-center p-4">
+                    <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : groups.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                    <span className="material-symbols-outlined text-4xl text-gray-300">group</span>
+                    <p className="text-sm text-gray-500 mt-2">Nenhum grupo encontrado</p>
+                  </div>
+                ) : (
+                  groups.map((group) => {
+                    const participants = group.group_participants || [];
+                    return (
+                      <div
+                        key={group.id}
+                        onClick={() => setSelectedConversation(group)}
+                        className={`flex items-center gap-3 p-3 cursor-pointer transition hover:bg-white/50 border-b border-gray-100/50 ${selectedConversation?.id === group.id ? "bg-white/60" : ""}`}
+                      >
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm bg-purple-100 text-purple-600">
+                          {group.name?.charAt(0) || "G"}
                         </div>
-                        {chat.online && (
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white online-dot"></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <p className="font-semibold text-sm text-gray-800 truncate">{group.name}</p>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate">
+                            {participants.length} participante{participants.length !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )
+              ) : (
+                filteredConversations.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                    <span className="material-symbols-outlined text-4xl text-gray-300">
+                      chat_bubble_outline
+                    </span>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Nenhuma conversa encontrada
+                    </p>
+                    <button className="mt-4 text-blue-600 hover:underline text-sm">
+                      Iniciar nova conversa
+                    </button>
+                  </div>
+                ) : (
+                  filteredConversations.map((chat) => {
+                    const lastMessage = chat.messages?.[chat.messages.length - 1];
+                    const unreadCount =
+                      chat.messages?.filter(
+                        (m) => !m.is_read && m.user_id !== currentUserId,
+                      ).length || 0;
+
+                    return (
+                      <div
+                        key={chat.id}
+                        onClick={() => {
+                          setSelectedConversation(chat);
+                        }}
+                        className={`flex items-center gap-3 p-3 cursor-pointer transition hover:bg-white/50 border-b border-gray-100/50 ${selectedConversation?.id === chat.id ? "bg-white/60" : ""}`}
+                      >
+                        <div className="relative flex-shrink-0">
+                          <div
+                            className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${typeColors[chat.type] || typeColors.default}`}
+                          >
+                            {chat.avatar || chat.name?.charAt(0) || "?"}
+                          </div>
+                          {chat.online && (
+                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white online-dot"></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <p className="font-semibold text-sm text-gray-800 truncate">
+                              {chat.name}
+                            </p>
+                            <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
+                              {lastMessage
+                                ? new Date(
+                                    lastMessage.created_at,
+                                  ).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : ""}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate">
+                            {lastMessage?.content || "Nenhuma mensagem"}
+                          </p>
+                        </div>
+                        {unreadCount > 0 && (
+                          <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-md">
+                            {unreadCount}
+                          </div>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start">
-                          <p className="font-semibold text-sm text-gray-800 truncate">
-                            {chat.name}
-                          </p>
-                          <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
-                            {lastMessage
-                              ? new Date(
-                                  lastMessage.created_at,
-                                ).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : ""}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 truncate">
-                          {lastMessage?.content || "Nenhuma mensagem"}
-                        </p>
-                      </div>
-                      {unreadCount > 0 && (
-                        <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-md">
-                          {unreadCount}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
+                    );
+                  })
+                )
               )}
             </div>
           </div>
@@ -761,6 +890,16 @@ export function Messages() {
                       {selectedConversation.online ? "Online" : ""}
                     </p>
                   </div>
+                </div>
+                <div className="relative flex-1 max-w-xs mx-2">
+                  <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+                  <input
+                    type="text"
+                    placeholder="Buscar na conversa..."
+                    value={messageSearch}
+                    onChange={(e) => setMessageSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white/80"
+                  />
                 </div>
                 <div className="flex items-center gap-1">
                   <button
@@ -826,42 +965,63 @@ export function Messages() {
                     <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  messages?.map((msg) => {
-                    const isMine = msg.user_id === currentUserId;
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex ${isMine ? "justify-end" : "justify-start"} animate-fade-up`}
-                        style={{ animationDuration: "0.3s" }}
-                      >
+                  (() => {
+                    const filtered = messageSearch
+                      ? messages?.filter(msg => msg.content?.toLowerCase().includes(messageSearch.toLowerCase()))
+                      : messages;
+                    return filtered?.map((msg) => {
+                      const isMine = msg.user_id === currentUserId;
+                      const highlight = messageSearch && msg.content?.toLowerCase().includes(messageSearch.toLowerCase());
+                      return (
                         <div
-                          className={`message-bubble p-3 rounded-2xl shadow-sm ${
-                            isMine
-                              ? "bg-blue-600 text-white rounded-tr-sm"
-                              : "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
-                          }`}
+                          key={msg.id}
+                          className={`flex ${isMine ? "justify-end" : "justify-start"} animate-fade-up`}
+                          style={{ animationDuration: "0.3s" }}
                         >
-                          <p className="text-sm">{msg.content}</p>
-                          <span
-                            className={`text-[10px] mt-1 block text-right ${isMine ? "text-blue-100" : "text-gray-400"}`}
+                          <div
+                            className={`message-bubble p-3 rounded-2xl shadow-sm ${
+                              isMine
+                                ? "bg-blue-600 text-white rounded-tr-sm"
+                                : "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
+                            }`}
                           >
-                            {new Date(msg.created_at).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                            {isMine && (
-                              <span className="material-symbols-outlined text-[10px] ml-1 align-middle">
-                                {msg.is_read ? "done_all" : "check"}
-                              </span>
-                            )}
-                          </span>
+                            <p className="text-sm">
+                              {highlight ? (
+                                msg.content.split(new RegExp(`(${messageSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')).map((part, i) =>
+                                  part.toLowerCase() === messageSearch.toLowerCase()
+                                    ? <span key={i} className="bg-yellow-300 text-gray-900 px-0.5 rounded">{part}</span>
+                                    : part
+                                )
+                              ) : msg.content}
+                            </p>
+                            <span
+                              className={`text-[10px] mt-1 block text-right ${isMine ? "text-blue-100" : "text-gray-400"}`}
+                            >
+                              {new Date(msg.created_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                              {isMine && (
+                                <span className="material-symbols-outlined text-[10px] ml-1 align-middle">
+                                  {msg.is_read ? "done_all" : "check"}
+                                </span>
+                              )}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
+                      );
+                    });
+                  })()
                 )}
                 <div ref={messagesEndRef} />
               </div>
+
+              {/* Typing Indicator */}
+              {selectedConversation && Object.keys(typingUsers).length > 0 && (
+                <div className="px-4 py-1 text-xs text-gray-500 italic">
+                  {Object.values(typingUsers).slice(0, 3).join(", ")} está digitando...
+                </div>
+              )}
 
               {/* Input de Mensagem */}
               <div className="p-3 border-t border-gray-200/50 bg-white/30">
@@ -897,13 +1057,16 @@ export function Messages() {
                     type="text"
                     placeholder="Digite sua mensagem..."
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={(e) => {
+                      setNewMessage(e.target.value);
+                      handleTyping();
+                    }}
                     onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm text-sm"
                   />
                   <button
                     onClick={handleSendMessage}
-                    disabled={!newMessage.trim() || sendMessage.isLoading}
+                    disabled={!newMessage.trim() || (showGroups ? sendGroupMessage.isLoading : sendMessage.isLoading)}
                     className="btn-primary-glow bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Enviar mensagem"
                   >
@@ -1195,6 +1358,90 @@ export function Messages() {
                 {selectedProfileId ? "Iniciar Conversa" : "Selecione um usuário"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Criar Grupo */}
+      {showGroupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay" onClick={() => { setShowGroupModal(false); setGroupName(""); setSelectedMembers([]); }}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">Criar Grupo</h3>
+              <button onClick={() => { setShowGroupModal(false); setGroupName(""); setSelectedMembers([]); }} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nome do Grupo</label>
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Digite o nome do grupo"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Adicionar Participantes</label>
+                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y">
+                  {availableProfiles.length === 0 ? (
+                    <p className="p-3 text-sm text-gray-400 text-center">Carregando perfis...</p>
+                  ) : (
+                    availableProfiles.map((profile) => {
+                      const isSelected = selectedMembers.includes(profile.id);
+                      return (
+                        <div
+                          key={profile.id}
+                          onClick={() => {
+                            setSelectedMembers(prev =>
+                              isSelected ? prev.filter(id => id !== profile.id) : [...prev, profile.id]
+                            );
+                          }}
+                          className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition ${
+                            isSelected ? "bg-purple-50" : "hover:bg-gray-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                          />
+                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600 text-xs">
+                            {profile.name?.charAt(0)?.toUpperCase() || "?"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">{profile.name || "Sem nome"}</p>
+                            <p className="text-xs text-gray-500 truncate">{profile.email}</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!groupName.trim()) return toast.error("Informe um nome para o grupo.");
+                  if (selectedMembers.length === 0) return toast.error("Adicione pelo menos um participante.");
+                  try {
+                    await createGroup.mutateAsync({ name: groupName, participant_ids: selectedMembers });
+                    toast.success("Grupo criado com sucesso!");
+                    setShowGroupModal(false);
+                    setGroupName("");
+                    setSelectedMembers([]);
+                  } catch (err) {
+                    toast.error("Erro ao criar grupo: " + err.message);
+                  }
+                }}
+                disabled={!groupName.trim() || selectedMembers.length === 0}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-2 rounded-lg font-medium transition"
+              >
+                Criar Grupo
+              </button>
+            </div>
           </div>
         </div>
       )}

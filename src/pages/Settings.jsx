@@ -84,6 +84,7 @@ export function Settings() {
     currency: "BRL",
     language: "pt-BR",
     timezone: "America/Sao_Paulo",
+    dateFormat: "DD/MM/AAAA",
     supplierRadius: 10,
     theme: "light", // light | dark | system
     primaryColor: "blue", // blue | green | purple
@@ -110,6 +111,7 @@ export function Settings() {
       googleLogin: true,
       googleDrive: false,
       whatsapp: false,
+      googleCalendar: false,
     },
   });
 
@@ -603,6 +605,22 @@ export function Settings() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
+                      Formato de Data
+                    </label>
+                    <select
+                      value={settings.dateFormat}
+                      onChange={(e) =>
+                        setSettings({ ...settings, dateFormat: e.target.value })
+                      }
+                      className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white/80"
+                    >
+                      <option value="DD/MM/AAAA">DD/MM/AAAA</option>
+                      <option value="MM/DD/AAAA">MM/DD/AAAA</option>
+                      <option value="AAAA-MM-DD">AAAA-MM-DD</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
                       Raio de busca de fornecedores
                     </label>
                     <select
@@ -834,6 +852,7 @@ export function Settings() {
 
             {/* ===== EXPORTAÇÃO ===== */}
             {activeTab === "exportacao" && (
+              <>
               <div className="space-y-6 animate-fade-up">
                 <h2 className="text-xl font-bold text-gray-800">
                   Exportação de Dados
@@ -888,6 +907,61 @@ export function Settings() {
                   Exportar
                 </button>
               </div>
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <h3 className="font-semibold text-gray-800 mb-2">Exportação GDPR</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Exportar todos os seus dados pessoais armazenados no sistema (projetos, tarefas, despesas, receitas, materiais, funcionários, conversas, investidores) em formato JSON.
+                </p>
+                <button
+                  onClick={async () => {
+                    const toastId = toast.loading("Coletando dados...");
+                    try {
+                      const { data: userData } = await supabase.auth.getUser();
+                      const userId = userData?.user?.id;
+                      const fetchTable = async (table) => {
+                        const { data } = await supabase.from(table).select("*").eq("user_id", userId);
+                        return data || [];
+                      };
+                      const [projects, tasks, expenses, revenues, materials, employees, conversations] = await Promise.all([
+                        supabase.from("projects").select("*").eq("user_id", userId).then(r => r.data || []),
+                        supabase.from("tasks").select("*").eq("user_id", userId).then(r => r.data || []),
+                        supabase.from("expenses").select("*").eq("user_id", userId).then(r => r.data || []),
+                        supabase.from("revenues").select("*").eq("user_id", userId).then(r => r.data || []),
+                        supabase.from("materials").select("*").eq("user_id", userId).then(r => r.data || []),
+                        supabase.from("employees").select("*").eq("user_id", userId).then(r => r.data || []),
+                        supabase.from("conversations").select("*").or(`user_id.eq.${userId},participant_id.eq.${userId}`).then(r => r.data || []),
+                      ]);
+                      const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single();
+                      const exportData = {
+                        exportedAt: new Date().toISOString(),
+                        profile: profile || {},
+                        projects,
+                        tasks,
+                        expenses,
+                        revenues,
+                        materials,
+                        employees,
+                        conversations,
+                      };
+                      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `despesify-gdpr-export-${new Date().toISOString().split("T")[0]}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      toast.success("Exportação concluída!", { id: toastId });
+                    } catch (err) {
+                      toast.error("Erro ao exportar dados: " + err.message, { id: toastId });
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg">download</span>
+                  Exportar Todos os Dados
+                </button>
+              </div>
+              </>
             )}
 
             {/* ===== INTEGRAÇÕES ===== */}
@@ -904,12 +978,14 @@ export function Settings() {
                       googleLogin: "Google Login",
                       googleDrive: "Google Drive",
                       whatsapp: "WhatsApp Business",
+                      googleCalendar: "Google Calendar",
                     };
                     const icons = {
                       googleMaps: "map",
                       googleLogin: "login",
                       googleDrive: "drive_folder_upload",
                       whatsapp: "chat",
+                      googleCalendar: "calendar_month",
                     };
                     return (
                       <div
@@ -939,6 +1015,12 @@ export function Settings() {
                     );
                   })}
                 </div>
+                {settings.integrations.googleCalendar && (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-blue-500">info</span>
+                    Em breve — sincronização com Google Calendar
+                  </div>
+                )}
               </div>
             )}
 

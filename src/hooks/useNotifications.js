@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 
@@ -24,6 +25,26 @@ export function useNotifications() {
       return data;
     },
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("realtime_notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        async (payload) => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (payload.new.user_id === user?.id) {
+            queryClient.setQueryData(["notifications"], (old) => {
+              if (!old) return [payload.new];
+              return [payload.new, ...old];
+            });
+          }
+        }
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [queryClient]);
 
   const markAsRead = useMutation({
     mutationFn: async (id) => {
@@ -54,8 +75,11 @@ export function useNotifications() {
     },
   });
 
+  const unreadCount = (data || []).filter(n => !n.is_read).length;
+
   return {
     notifications: data || [],
+    unreadCount,
     isLoading,
     error,
     markAsRead,

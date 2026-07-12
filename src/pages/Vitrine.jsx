@@ -37,6 +37,12 @@ export function Vitrine() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todas");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [minReturnFilter, setMinReturnFilter] = useState("");
+  const [maxRiskFilter, setMaxRiskFilter] = useState("");
+
+  const [compareIds, setCompareIds] = useState([]);
+  const [showCompareModal, setShowCompareModal] = useState(false);
   
   const [showModal, setShowModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -109,9 +115,18 @@ export function Vitrine() {
       if (categoryFilter !== "Todas" && p.category !== categoryFilter) {
         return false;
       }
+      if (locationFilter && !p.location?.toLowerCase().includes(locationFilter.toLowerCase())) {
+        return false;
+      }
+      if (minReturnFilter && (p.expectedReturn || 0) < parseFloat(minReturnFilter)) {
+        return false;
+      }
+      if (maxRiskFilter && (p.riskLevel || 0) > parseFloat(maxRiskFilter)) {
+        return false;
+      }
       return true;
     });
-  }, [projects, searchTerm, categoryFilter]);
+  }, [projects, searchTerm, categoryFilter, locationFilter, minReturnFilter, maxRiskFilter]);
 
   const filteredInvestors = useMemo(() => {
     if (!publicInvestors) return [];
@@ -170,17 +185,53 @@ export function Vitrine() {
           />
         </div>
         {!isEnterprise && (
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="Localização"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-500 w-36"
+            />
+            <input
+              type="number"
+              placeholder="Retorno mín. %"
+              value={minReturnFilter}
+              onChange={(e) => setMinReturnFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-500 w-36"
+              min="0"
+              max="100"
+            />
+            <input
+              type="number"
+              placeholder="Risco máx."
+              value={maxRiskFilter}
+              onChange={(e) => setMaxRiskFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-500 w-36"
+              min="0"
+              max="100"
+            />
+          </>
+        )}
+        {!isEnterprise && compareIds.length === 2 && (
+          <button
+            onClick={() => setShowCompareModal(true)}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium flex items-center gap-2"
           >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+            <span className="material-symbols-outlined text-lg">compare_arrows</span>
+            Comparar
+          </button>
         )}
       </div>
 
@@ -224,7 +275,21 @@ export function Vitrine() {
               <div key={project.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
                 <div className="bg-gradient-to-r from-green-600 to-green-800 p-4">
                   <div className="flex justify-between items-start">
-                    <h3 className="font-semibold text-white text-lg">{project.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={compareIds.includes(project.id)}
+                        onChange={() => {
+                          setCompareIds(prev =>
+                            prev.includes(project.id)
+                              ? prev.filter(id => id !== project.id)
+                              : prev.length < 2 ? [...prev, project.id] : prev
+                          );
+                        }}
+                        className="w-4 h-4 accent-purple-600"
+                      />
+                      <h3 className="font-semibold text-white text-lg">{project.name}</h3>
+                    </div>
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/20 text-white">🌎 Público</span>
                   </div>
                   <p className="text-sm text-white/80">{project.category || "Sem categoria"}</p>
@@ -253,6 +318,53 @@ export function Vitrine() {
             ))}
           </div>
         )
+      )}
+
+      {/* Modal de Comparação */}
+      {showCompareModal && compareIds.length === 2 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowCompareModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-3xl w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800">Comparar Projetos</h3>
+              <button onClick={() => setShowCompareModal(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            {(() => {
+              const [a, b] = compareIds.map(id => projects.find(p => p.id === id));
+              if (!a || !b) return null;
+              const rows = [
+                { label: "Nome", va: a.name, vb: b.name },
+                { label: "Categoria", va: a.category, vb: b.category },
+                { label: "Orçamento", va: `R$ ${(a.budget || 0).toLocaleString()}`, vb: `R$ ${(b.budget || 0).toLocaleString()}` },
+                { label: "Localização", va: a.location || "-", vb: b.location || "-" },
+                { label: "Retorno Esperado", va: `${a.expectedReturn || 0}%`, vb: `${b.expectedReturn || 0}%` },
+                { label: "Nível de Risco", va: `${a.riskLevel || 0}/10`, vb: `${b.riskLevel || 0}/10` },
+                { label: "Progresso", va: `${a.progress || 0}%`, vb: `${b.progress || 0}%` },
+              ];
+              return (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 pr-4 text-gray-500 font-medium">Métrica</th>
+                      <th className="text-left py-2 px-4 bg-green-50 text-green-800 font-medium rounded-tl-lg rounded-tr-lg">{a.name}</th>
+                      <th className="text-left py-2 px-4 bg-blue-50 text-blue-800 font-medium rounded-tl-lg rounded-tr-lg">{b.name}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(row => (
+                      <tr key={row.label} className="border-b border-gray-100">
+                        <td className="py-3 pr-4 text-gray-500 font-medium">{row.label}</td>
+                        <td className="py-3 px-4 bg-green-50/50">{row.va}</td>
+                        <td className="py-3 px-4 bg-blue-50/50">{row.vb}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
+          </div>
+        </div>
       )}
 
       {/* Modal de Investimento */}

@@ -547,13 +547,30 @@ const handleSaveProject = async () => {
                   <h3 className="font-semibold text-white text-lg">
                     {project.name}
                   </h3>
-                  <span
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${project.visibility === "public" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-700"}`}
-                  >
-                    {project.visibility === "public"
-                      ? "🌎 Público"
-                      : "🔒 Privado"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-block w-2.5 h-2.5 rounded-full ${
+                      (() => {
+                        const ratio = (project.spent || 0) / (project.budget || 1);
+                        if (ratio <= 0.5) return "bg-green-500";
+                        if (ratio <= 0.8) return "bg-yellow-500";
+                        return "bg-red-500";
+                      })()
+                    }`} title={
+                      (() => {
+                        const ratio = (project.spent || 0) / (project.budget || 1);
+                        if (ratio <= 0.5) return "Saudável";
+                        if (ratio <= 0.8) return "Atenção";
+                        return "Crítico";
+                      })()
+                    }></span>
+                    <span
+                      className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${project.visibility === "public" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-700"}`}
+                    >
+                      {project.visibility === "public"
+                        ? "🌎 Público"
+                        : "🔒 Privado"}
+                    </span>
+                  </div>
                 </div>
                 <p className="text-sm text-white/80">
                   {project.category || "Sem categoria"}
@@ -644,6 +661,23 @@ const handleSaveProject = async () => {
                     title="Editar Projeto"
                   >
                     ✏️
+                  </button>
+                  <button
+                    onClick={() => {
+                      createProject.mutateAsync({
+                        name: project.name + " (Cópia)",
+                        category: project.category,
+                        visibility: project.visibility,
+                        budget: project.budget || 0,
+                        spent: 0,
+                        progress: 0,
+                      }).then(() => toast.success("Projeto duplicado com sucesso!"))
+                      .catch(() => toast.error("Erro ao duplicar o projeto."));
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm text-gray-500"
+                    title="Duplicar Projeto"
+                  >
+                    📋
                   </button>
                   <button
                     onClick={() => {
