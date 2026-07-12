@@ -112,10 +112,9 @@ export function Messages() {
 
     // 4. Remove o usuário atual da lista
     try {
-      const currentUserStr = localStorage.getItem("currentUser");
-      if (currentUserStr) {
-        const currentUser = JSON.parse(currentUserStr);
-        uniqueUsers = uniqueUsers.filter(u => u.email.toLowerCase() !== currentUser.email.toLowerCase());
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        uniqueUsers = uniqueUsers.filter(u => u.id !== user.id);
       }
     } catch (e) {}
 
@@ -220,13 +219,12 @@ export function Messages() {
 
       // Remove o usuário atual da lista
       try {
-        const currentUserStr = localStorage.getItem("currentUser");
-        if (currentUserStr) {
-          const currentUser = JSON.parse(currentUserStr);
-          uniqueUsers = uniqueUsers.filter(u => u.email.toLowerCase() !== currentUser.email.toLowerCase());
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          uniqueUsers = uniqueUsers.filter(u => u.id !== user.id);
         }
       } catch (e) {}
-      
+
       console.log("Combined initial unique users:", uniqueUsers);
 
       if (uniqueUsers.length > 0) {
@@ -288,10 +286,9 @@ export function Messages() {
 
       // Remove o usuário atual da lista
       try {
-        const currentUserStr = localStorage.getItem("currentUser");
-        if (currentUserStr) {
-          const currentUser = JSON.parse(currentUserStr);
-          uniqueUsers = uniqueUsers.filter(u => u.email.toLowerCase() !== currentUser.email.toLowerCase());
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          uniqueUsers = uniqueUsers.filter(u => u.id !== user.id);
         }
       } catch (e) {}
 
@@ -330,6 +327,10 @@ export function Messages() {
   const showDropdown = isSearchFocused && (searchTerm.trim().length > 0 || suggestedProfiles.length > 0 || isSearchingGlobal);
 
   const handleStartChatWithProfile = async (profile) => {
+    if (profile.id === currentUserId) {
+      toast.error("Você não pode iniciar uma conversa consigo mesmo.");
+      return;
+    }
     try {
       const convType = profile.plan === 'investor' ? 'investor' : profile.plan === 'enterprise' ? 'supplier' : 'default';
       const newConv = await createConversation.mutateAsync({ 
@@ -444,6 +445,10 @@ export function Messages() {
   const handleCreateConversation = async (e) => {
     e.preventDefault();
     if (!newConvName.trim()) return;
+    if (selectedProfileId === currentUserId) {
+      toast.error("Você não pode iniciar uma conversa consigo mesmo.");
+      return;
+    }
     try {
       const newConv = await createConversation.mutateAsync({ 
         name: newConvName, 
