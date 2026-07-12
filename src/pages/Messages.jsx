@@ -506,7 +506,7 @@ export function Messages() {
   }
 
   return (
-    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-6 bg-gray-50 h-screen flex flex-col overflow-hidden">
       <style>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(24px) scale(0.98); }
@@ -649,10 +649,10 @@ export function Messages() {
 
       {/* Layout principal: Chat */}
       <div
-        className="glass-card rounded-2xl overflow-hidden animate-fade-up flex-1 mb-6 flex flex-col"
-        style={{ animationDelay: "0.15s", minHeight: "600px", maxHeight: "80vh" }}
+        className="glass-card rounded-2xl overflow-hidden animate-fade-up flex-1 flex flex-col min-h-0"
+        style={{ animationDelay: "0.15s" }}
       >
-        <div className="flex flex-col md:flex-row h-full">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0">
           {/* Sidebar: Lista de Conversas */}
           <div className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-gray-200/50 flex-col bg-white/30 backdrop-blur-sm ${selectedConversation ? 'hidden md:flex' : 'flex'} h-full`}>
             {/* Busca e Filtros */}
