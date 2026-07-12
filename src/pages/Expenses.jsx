@@ -205,7 +205,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE expenses;`}
           to { opacity: 1; transform: translateY(0); }
         }
         .fade-up { animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) forwards; opacity: 0; }
-        .glass { background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(0,0,0,0.05); }
         .expense-row { transition: all 0.2s ease; }
         .expense-row:hover { background: rgba(255,255,255,0.9); transform: translateX(2px); }
         .cat-bar { transition: width 0.8s cubic-bezier(0.22,1,0.36,1); }
@@ -254,47 +253,47 @@ ALTER PUBLICATION supabase_realtime ADD TABLE expenses;`}
 
       {/* Cards de resumo */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 fade-up" style={{ animationDelay: "0.1s" }}>
-        <div className="glass rounded-xl p-4">
-          <p className="text-xs text-gray-500 flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm text-red-500">credit_card</span>
+        <div className="glass-card rounded-xl p-4" style={{ borderLeft: "4px solid var(--color-primary)" }}>
+          <p className="text-xs flex items-center gap-1" style={{ color: "var(--color-text-secondary)" }}>
+            <span className="material-symbols-outlined text-sm" style={{ color: "var(--color-primary)" }}>credit_card</span>
             Total do Mês
           </p>
-          <p className="text-xl font-bold text-gray-800 mt-1">
+          <p className="text-xl font-bold mt-1" style={{ color: "var(--color-text)" }}>
             R$ {stats.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">{stats.count} lançamento{stats.count !== 1 ? "s" : ""}</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{stats.count} lançamento{stats.count !== 1 ? "s" : ""}</p>
         </div>
-        <div className="glass rounded-xl p-4">
-          <p className="text-xs text-gray-500 flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm text-orange-500">calendar_today</span>
+        <div className="glass-card rounded-xl p-4" style={{ borderLeft: "4px solid var(--color-primary-light)" }}>
+          <p className="text-xs flex items-center gap-1" style={{ color: "var(--color-text-secondary)" }}>
+            <span className="material-symbols-outlined text-sm" style={{ color: "var(--color-primary-light)" }}>calendar_today</span>
             Média Diária
           </p>
-          <p className="text-xl font-bold text-gray-800 mt-1">
+          <p className="text-xl font-bold mt-1" style={{ color: "var(--color-text)" }}>
             R$ {stats.avgPerDay.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">por dia</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>por dia</p>
         </div>
-        <div className="glass rounded-xl p-4">
-          <p className="text-xs text-gray-500 flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm text-purple-500">category</span>
+        <div className="glass-card rounded-xl p-4" style={{ borderLeft: "4px solid var(--color-primary-dark)" }}>
+          <p className="text-xs flex items-center gap-1" style={{ color: "var(--color-text-secondary)" }}>
+            <span className="material-symbols-outlined text-sm" style={{ color: "var(--color-primary-dark)" }}>category</span>
             Maior Categoria
           </p>
           {stats.byCategory[0] ? (
             <>
-              <p className="text-base font-bold text-gray-800 mt-1 truncate">{stats.byCategory[0].label}</p>
-              <p className="text-xs text-gray-400 mt-0.5">R$ {stats.byCategory[0].total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              <p className="text-base font-bold mt-1 truncate" style={{ color: "var(--color-text)" }}>{stats.byCategory[0].label}</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>R$ {stats.byCategory[0].total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
             </>
           ) : (
-            <p className="text-sm text-gray-400 mt-1">–</p>
+            <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>–</p>
           )}
         </div>
-        <div className="glass rounded-xl p-4">
-          <p className="text-xs text-gray-500 flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm text-green-500">pie_chart</span>
+        <div className="glass-card rounded-xl p-4" style={{ borderLeft: "4px solid #1B4F72" }}>
+          <p className="text-xs flex items-center gap-1" style={{ color: "var(--color-text-secondary)" }}>
+            <span className="material-symbols-outlined text-sm" style={{ color: "#1B4F72" }}>pie_chart</span>
             Categorias
           </p>
-          <p className="text-xl font-bold text-gray-800 mt-1">{stats.byCategory.length}</p>
-          <p className="text-xs text-gray-400 mt-0.5">com gastos</p>
+          <p className="text-xl font-bold mt-1" style={{ color: "var(--color-text)" }}>{stats.byCategory.length}</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>com gastos</p>
         </div>
       </div>
 
@@ -304,7 +303,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE expenses;`}
         {/* Coluna esquerda: lista */}
         <div className="lg:col-span-2 space-y-4 fade-up" style={{ animationDelay: "0.15s" }}>
           {/* Filtros */}
-          <div className="glass rounded-xl p-4 flex flex-wrap gap-3 items-center">
+          <div className="glass-card rounded-xl p-4 flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[160px]">
               <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
               <input
@@ -337,7 +336,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE expenses;`}
 
           {/* Lista de gastos */}
           {filtered.length === 0 ? (
-            <div className="glass rounded-xl p-12 text-center">
+            <div className="glass-card rounded-xl p-12 text-center">
               <span className="material-symbols-outlined text-5xl text-gray-300">receipt_long</span>
               <p className="text-gray-500 font-medium mt-3">Nenhum gasto encontrado</p>
               <p className="text-sm text-gray-400 mt-1">Adicione um novo gasto usando o botão acima.</p>
@@ -346,7 +345,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE expenses;`}
               </button>
             </div>
           ) : (
-            <div className="glass rounded-xl overflow-hidden">
+            <div className="glass-card rounded-xl overflow-hidden">
               {filtered.map((exp, i) => {
                 const cat = getCat(exp.category);
                 return (
@@ -401,8 +400,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE expenses;`}
 
         {/* Coluna direita: breakdown por categoria */}
         <div className="space-y-4 fade-up" style={{ animationDelay: "0.2s" }}>
-          <div className="glass rounded-xl p-5">
-            <h3 className="font-bold text-gray-800 text-sm mb-4 flex items-center gap-2">
+          <div className="glass-card rounded-xl p-5">
+            <h3 className="font-bold text-sm mb-4 flex items-center gap-2" style={{ color: "var(--color-text)" }}>
               <span className="material-symbols-outlined text-base text-blue-500">bar_chart</span>
               Por Categoria
             </h3>
@@ -438,8 +437,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE expenses;`}
           </div>
 
           {/* Dicas */}
-          <div className="glass rounded-xl p-5">
-            <h3 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2">
+          <div className="glass-card rounded-xl p-5">
+            <h3 className="font-bold text-sm mb-3 flex items-center gap-2" style={{ color: "var(--color-text)" }}>
               <span className="material-symbols-outlined text-base text-yellow-500">lightbulb</span>
               Dicas Financeiras
             </h3>
