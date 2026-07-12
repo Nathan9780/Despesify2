@@ -20,15 +20,15 @@ export const useMessages = (conversationId) => {
       return data || [];
     },
     enabled: !!conversationId,
-    staleTime: 30000,
+    staleTime: 0, // Sempre buscar dados frescos
   });
 
-  // Inscrever para atualizações em tempo real
+  // Inscrever para atualizações em tempo real (canal único)
   useEffect(() => {
     if (!conversationId) return;
 
     const channel = supabase
-      .channel(`messages_${conversationId}`)
+      .channel(`realtime_messages_${conversationId}`)
       .on(
         "postgres_changes",
         {
@@ -40,11 +40,13 @@ export const useMessages = (conversationId) => {
         (payload) => {
           queryClient.setQueryData(["messages", conversationId], (old) => {
             if (!old) return [payload.new];
-            // Prevenir duplicatas se a mutation local já tiver inserido
+            // Prevenir duplicatas
             const isDuplicate = old.some((msg) => msg.id === payload.new.id);
             if (isDuplicate) return old;
             return [...old, payload.new];
           });
+          // Atualizar lista de conversas para mostrar última mensagem
+          queryClient.invalidateQueries(["conversations"]);
         }
       )
       .subscribe();
@@ -86,48 +88,18 @@ export const useMessages = (conversationId) => {
       return data;
     },
     onSuccess: (newMessage) => {
-      // Atualizar cache da conversa atual
+      // Adicionar a mensagem ao cache local imediatamente (otimista)
+      // O realtime também vai receber, mas o check de duplicata evita dupla exibição
       queryClient.setQueryData(["messages", conversationId], (old) => {
         if (!old) return [newMessage];
+        const isDuplicate = old.some((msg) => msg.id === newMessage.id);
+        if (isDuplicate) return old;
         return [...old, newMessage];
       });
       // Invalidar lista de conversas para atualizar a última mensagem
       queryClient.invalidateQueries(["conversations"]);
     },
   });
-
-  // Realtime: ouvir novas mensagens
-  useEffect(() => {
-    if (!conversationId) return;
-
-    const subscription = supabase
-      .channel(`messages:${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          // Adicionar a nova mensagem ao cache
-          queryClient.setQueryData(["messages", conversationId], (old) => {
-            if (!old) return [payload.new];
-            // Evitar duplicatas
-            if (old.some((msg) => msg.id === payload.new.id)) return old;
-            return [...old, payload.new];
-          });
-          // Invalidar conversas para atualizar a última mensagem
-          queryClient.invalidateQueries(["conversations"]);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, [conversationId, queryClient]);
 
   return {
     messages: data || [],

@@ -53,6 +53,7 @@ export function Sidebar() {
       { name: "Meus Projetos", path: "/projects", icon: "folder_shared" },
       { name: "Equipe", path: "/team", icon: "group" },
       { name: "Materiais", path: "/materials", icon: "inventory_2" },
+      { name: "Gastos", path: "/expenses", icon: "payments" },
     ];
 
     if (userPlan === "enterprise") {

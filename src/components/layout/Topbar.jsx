@@ -74,6 +74,7 @@ export function Topbar() {
       { to: "/projects", label: "Projetos", icon: "folder_open" },
       { to: "/team", label: "Equipe", icon: "group" },
       { to: "/materials", label: "Materiais", icon: "inventory_2" },
+      { to: "/expenses", label: "Gastos", icon: "money_off" },
     ];
 
     if (currentPlan === "enterprise") {

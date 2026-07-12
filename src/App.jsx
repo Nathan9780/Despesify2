@@ -16,6 +16,7 @@ import { Tasks } from "./pages/Tasks";
 import { Suppliers } from "./pages/Suppliers";
 import { Monetary } from "./pages/Monetary";
 import { ProjectDetails } from "./pages/ProjectDetails";
+import { Expenses } from "./pages/Expenses";
 import { WithPlan } from "./components/layout/WithPlan";
 import { Toaster } from "react-hot-toast";
 
@@ -58,6 +59,11 @@ function App() {
           <Route path="materials" element={
             <WithPlan allowedPlans={["citizen", "enterprise"]}>
               <Materials />
+            </WithPlan>
+          } />
+          <Route path="expenses" element={
+            <WithPlan allowedPlans={["citizen", "enterprise"]}>
+              <Expenses />
             </WithPlan>
           } />
           <Route path="investors" element={

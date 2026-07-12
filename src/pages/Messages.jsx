@@ -11,6 +11,7 @@ export function Messages() {
     isLoading: conversationsLoading,
     error: conversationsError,
     createConversation,
+    deleteConversation,
   } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [newMessage, setNewMessage] = useState("");
@@ -19,6 +20,7 @@ export function Messages() {
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showProposal, setShowProposal] = useState(false);
   const [showNewConversation, setShowNewConversation] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [newConvName, setNewConvName] = useState("");
   const [newConvType, setNewConvType] = useState("default");
   
@@ -383,10 +385,9 @@ export function Messages() {
     // Marcar todas as mensagens como lidas (opcional)
   }, [selectedConversation]);
 
-  // Estado de loading combinado
-  const isLoading = conversationsLoading || messagesLoading;
-
-  if (isLoading) {
+  // Estado de loading: só bloqueia o render inicial das conversas
+  // (messagesLoading é tratado inline na área de mensagens)
+  if (conversationsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -779,14 +780,42 @@ export function Messages() {
                       attach_file
                     </span>
                   </button>
-                  <button
-                    className="p-2 rounded-lg hover:bg-gray-100 transition"
-                    title="Mais opções"
-                  >
-                    <span className="material-symbols-outlined text-sm text-gray-500">
-                      more_vert
-                    </span>
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                      className="p-2 rounded-lg hover:bg-gray-100 transition"
+                      title="Mais opções"
+                    >
+                      <span className="material-symbols-outlined text-sm text-gray-500">
+                        more_vert
+                      </span>
+                    </button>
+                    {showOptionsMenu && (
+                      <div
+                        className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 w-52 overflow-hidden"
+                        onMouseLeave={() => setShowOptionsMenu(false)}
+                      >
+                        <button
+                          onClick={async () => {
+                            setShowOptionsMenu(false);
+                            if (window.confirm(`Apagar conversa com "${selectedConversation.name}"? Todas as mensagens serão removidas permanentemente.`)) {
+                              try {
+                                await deleteConversation.mutateAsync(selectedConversation.id);
+                                setSelectedConversation(null);
+                                toast.success('Conversa apagada!');
+                              } catch (err) {
+                                toast.error('Erro ao apagar conversa: ' + err.message);
+                              }
+                            }
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                          Apagar conversa
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
+import { useEffect } from "react";
 
 export const useConversations = () => {
   const queryClient = useQueryClient();
@@ -36,8 +37,43 @@ export const useConversations = () => {
       if (error) throw error;
       return data || [];
     },
-    staleTime: 60000,
+    staleTime: 0, // Sempre atualizar
   });
+
+  // Realtime: ouvir novas conversas e atualizações
+  useEffect(() => {
+    const channel = supabase
+      .channel("realtime_conversations")
+      .on(
+        "postgres_changes",
+        {
+          event: "*", // INSERT, UPDATE, DELETE
+          schema: "public",
+          table: "conversations",
+        },
+        () => {
+          // Recarregar lista de conversas quando houver qualquer mudança
+          queryClient.invalidateQueries(["conversations"]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        () => {
+          // Recarregar conversas quando uma nova mensagem chegar (atualiza preview)
+          queryClient.invalidateQueries(["conversations"]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const createConversation = useMutation({
     mutationFn: async ({ name, type, target_user_id, projectId }) => {
@@ -65,5 +101,26 @@ export const useConversations = () => {
     },
   });
 
-  return { conversations: data || [], isLoading, error, createConversation };
+  const deleteConversation = useMutation({
+    mutationFn: async (conversationId) => {
+      // Deletar mensagens primeiro (FK constraint)
+      const { error: msgError } = await supabase
+        .from("messages")
+        .delete()
+        .eq("conversation_id", conversationId);
+      if (msgError) throw msgError;
+
+      // Deletar a conversa
+      const { error } = await supabase
+        .from("conversations")
+        .delete()
+        .eq("id", conversationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["conversations"]);
+    },
+  });
+
+  return { conversations: data || [], isLoading, error, createConversation, deleteConversation };
 };
